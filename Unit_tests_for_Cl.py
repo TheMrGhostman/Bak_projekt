@@ -1,12 +1,16 @@
 import numpy as np
 import Classification as CL
+import os
+#import python_pwd
+way = os.getcwd() + "/Data_npy/"
 
-data = np.hstack((3*np.ones(10),np.zeros(5),2*np.ones(10)))
+
+data = np.hstack((3*np.ones(10), np.zeros(5), 2 * np.ones(10)))
 
 def Test_SZL():
     test_data = np.array([CL.suma_zleva_fce(np.ones(20), i, 10) for i in range(len(np.ones(20)))])
 
-    real_result = np.load("Unit_test_pro_SZLF.npy")
+    real_result = np.load(way + "Unit_test_pro_SZLF.npy")
 
     if(np.allclose(test_data,real_result)):
         return("Funguje")
@@ -17,7 +21,7 @@ def Test_ARPF():
     test_data = np.array([CL.aritmeticky_prumer_fce(data, i, 5)
                           for i in range(25)])
 
-    real_result = np.load("Unit_test_pro_ARPF.npy")
+    real_result = np.load(way + "Unit_test_pro_ARPF.npy")
 
     if(np.allclose(test_data,real_result)):
         return("Funguje")
@@ -27,7 +31,7 @@ def Test_ARPF():
 def Test_RF():
     test_data = CL.rozptyl_fce(data, 5)
 
-    real_result = np.load("Unit_test_pro_RF.npy")
+    real_result = np.load(way + "Unit_test_pro_RF.npy")
 
     if(np.allclose(test_data,real_result)):
         return("Funguje")
@@ -39,7 +43,7 @@ def Test_ROPF():
 
     test_data = CL.rozptyl_od_poc_fce(data, aritmetiky_prumer_od_pocatku)
 
-    real_result = np.load("Unit_test_pro_ROPF.npy")
+    real_result = np.load(way + "Unit_test_pro_ROPF.npy")
 
     if(np.allclose(test_data,real_result)):
         return("Funguje")
@@ -47,9 +51,9 @@ def Test_ROPF():
         return("Nefunguje")
 
 def Test_srovnej():
-    res_data = np.load('Unit_test_pro_srovnej_result.npy')
-    data = np.load('Unit_test_pro_srovnej_stavy.npy')
-    real_result = np.load('Unit_test_pro_srovnej_kontrola.npy')
+    res_data = np.load(way + 'Unit_test_pro_srovnej_result.npy')
+    data = np.load(way + 'Unit_test_pro_srovnej_stavy.npy')
+    real_result = np.load(way + 'Unit_test_pro_srovnej_kontrola.npy')
     srovnani = CL.srovnej(data, res_data)
     #původně bylo CL.srovnej(res_data,data) ale po opravě chyby ve funkci srovnej se to musí zadávat takto
     if(srovnani[0] == 197 and np.allclose(srovnani[1], real_result)):
@@ -90,7 +94,7 @@ def Test_PaR():
     res = np.array([0, 1, 2, 0, 1, 2, 2])
     data = np.array([0, 1, 1, 0, 0, 1, 2])
     PaR = CL.Precision_n_Recall(res,data,3,False)
-    real_result = np.load("PaR_real_res.npy")
+    real_result = np.load(way + "PaR_real_res.npy")
     if(np.allclose(PaR,real_result)):
         return("Funguje")
     else:
