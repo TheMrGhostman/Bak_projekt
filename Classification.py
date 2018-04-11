@@ -10,6 +10,17 @@ import pandas as pd
 import itertools as it
 import timeit
 
+def Derivace(data, krok = 1):
+    data = np.array(data)
+    derivace = np.zeros(len(data))
+    for i in range(len(data)):
+        if i == 0:
+            derivace[i] = (data[1]-data[0])/krok
+        elif i == len(data)-1:
+            derivace[i] = (data[i]-data[i-1])/krok
+        else:
+            derivace[i] = (data[i+1]-data[i-1])/(2*krok)
+    return derivace
 
 def suma_zleva_fce(data, pozice, okno = 10):
     pozice += 1
@@ -221,13 +232,13 @@ def Set_Features(data_set, šum = True, velikost_sumu = 1/40, delka_okna = 10, p
     # do X jsou odteď přidané i feature
 
     if prvni_derivace == True:
-        Dx1 = np.gradient(XX)
+        Dx1 = Derivace(XX)
         X = np.vstack([X, Dx1])
         vlastnosti[0] = Dx1
 
     if druha_derivace == True:
-        Dx1 = np.gradient(XX)
-        Dx2 = np.gradient(Dx1)
+        Dx1 = Derivace(XX)
+        Dx2 = Derivace(Dx1)
         X = np.vstack([X, Dx2])
         vlastnosti[1] = Dx2
 

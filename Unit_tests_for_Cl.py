@@ -7,6 +7,14 @@ way = os.getcwd() + "/Data_npy/"
 
 data = np.hstack((3*np.ones(10), np.zeros(5), 2 * np.ones(10)))
 
+def Test_Derivace():
+    test_data = [1, 2, 4, 7, 11, 16]
+    derivace = CL.Derivace(test_data)
+    if(np.allclose(derivace, np.gradient(test_data))):
+        return("Funguje")
+    else:
+        return("Nefunguje")
+
 def Test_SZL():
     test_data = np.array([CL.suma_zleva_fce(np.ones(20), i, 10) for i in range(len(np.ones(20)))])
 
@@ -105,7 +113,8 @@ def Test_klasifikuj():
 
 def main_all():
     print("Proběhl test všech funkcí z modulu Classification." )
-    print("Váhová suma zleva : ", Test_SZL(),
+    print("Derivace: ", Test_Derivace(),
+    "\nVáhová suma zleva: ", Test_SZL(),
     "\nÚsekový aritmetický průměr: ", Test_ARPF(),
     "\nÚsekový rozptyl: ", Test_RF(),
     "\nRozptyl od počátku: ", Test_ROPF(),

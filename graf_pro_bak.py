@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-
+way = os.getcwd() + "/Data_npy/"
 ##pwd = os.getcwd()
 ##pwd
 ##for i in reversed(pwd):
@@ -25,7 +25,7 @@ def aritm(data):
 
 
 
-X = np.load("Synteticka_data_sum_0.025.npy")
+X = np.load(way + "Synteticka_data_sum_0.025.npy")
 
 #plt.rc('text', usetex=True)
 #plt.rc('font', family='serif')
@@ -50,15 +50,19 @@ fig.subplots_adjust(hspace = 0)
 axs[0].plot(X, label = "data")
 axs[0].set_yticks(np.around(np.arange(gmin, gmax,(gmax-gmin)/5), decimals = 2))
 axs[0].set_ylim(gmin,gmax)
+axs[0].set_ylabel("Halpha")
 axs[0].legend(loc = "lower right")
 axs[1].plot(usek, label = "úsekový aritmetický průměr", color = "orange")
 axs[1].set_yticks(np.around(np.arange(gmin, gmax,(gmax-gmin)/5), decimals = 2))
 axs[1].set_ylim(gmin-0.05,gmax)
+axs[1].set_ylabel("Halpha")
 axs[1].legend(loc = "lower right")
 axs[2].plot(ar, label = 'standartní aritmetický průměr', color  = "red")
 axs[2].set_yticks(np.around(np.arange(gmin, gmax,(gmax-gmin)/5), decimals = 2))
 axs[2].set_ylim(gmin,gmax-0.02)
+axs[2].set_ylabel(r'H$\alpha$')
 axs[2].legend(loc = "lower right")
+axs[2].set_xlabel("time")
 plt.show()
 
 
