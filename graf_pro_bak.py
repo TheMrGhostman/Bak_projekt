@@ -96,3 +96,33 @@ plt.plot(XXX)
 plt.plot(np.gradient(XXX))
 plt.plot([cl.aritmeticky_prumer_fce(X, x, 5) for x in range(len(X))]-np.mean(X))
 plt.show()
+
+
+
+aritmetiky_prumer_od_pocatku = np.cumsum(X) / (np.arange(len(X)) + 1)
+Rozpt = cl.rozptyl_od_poc_fce(X, aritmetiky_prumer_od_pocatku)
+
+Rozptyl = cl.rozptyl_fce(X, 5)
+
+gmax = max([max(X), max(usek), max(ar)])+((max(X)-min(X))/10)
+gmin = min([min(X), min(usek), min(ar)])-((max(X)-min(X))/10)
+
+fig, axs = plt.subplots(3,1, sharex = True)
+fig.subplots_adjust(hspace = 0)
+axs[0].plot(X, label = "data")
+axs[0].set_yticks(np.around(np.arange(gmin, gmax,(gmax-gmin)/5), decimals = 2))
+axs[0].set_ylim(gmin,gmax)
+axs[0].set_ylabel(r"H$\alpha$")
+axs[0].legend(loc = "lower right")
+axs[1].plot(Rozptyl, label = "úsekový rozptyl", color = "orange")
+axs[1].set_yticks(np.around(np.arange(-0.01, gmax,(gmax+0.01)/4), decimals = 2))
+axs[1].set_ylim(-0.01,gmax)
+axs[1].set_ylabel(r"H$\alpha$")
+axs[1].legend(loc = "upper right")
+axs[2].plot(Rozpt, label = 'rozptyl', color  = "red")
+axs[2].set_yticks(np.around(np.arange(-0.01, gmax,(gmax+0.01)/4), decimals = 2))
+axs[2].set_ylim(-0.01, gmax)
+axs[2].set_ylabel(r'H$\alpha$')
+axs[2].legend(loc = "upper right")
+axs[2].set_xlabel("time")
+plt.show()

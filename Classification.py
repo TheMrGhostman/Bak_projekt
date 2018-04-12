@@ -59,7 +59,7 @@ def aritmeticky_prumer_fce(data, pozice, okno = 10):
 
 
 def rozptyl_fce(data, okno = 10):
-    Odchylka = np.zeros(len(data))
+    rozptyl = np.zeros(len(data))
     Aritm = [aritmeticky_prumer_fce(data, x, okno) for x in range(len(data))]
 
     for i in range(len(data)):
@@ -70,15 +70,15 @@ def rozptyl_fce(data, okno = 10):
             dolni_index = i + 1 - okno
             delitel = okno
 
-        Odchylka[i] = sqrt((1 / delitel) * sum((data[dolni_index: i + 1] - Aritm[dolni_index: i + 1]) ** 2))
+        rozptyl[i] = (1 / delitel) * sum((data[dolni_index: i + 1] - Aritm[dolni_index: i + 1]) ** 2)
 
-    return Odchylka
+    return rozptyl
 
 
 def rozptyl_od_poc_fce(data, a_prumer_od_poc):
     odchylka = np.zeros(len(data))
     for i in range(len(data)):
-        odchylka[i]= sqrt((1 / ( i + 1 )) * sum((data[0 : i + 1] - a_prumer_od_poc[0 : i + 1]) ** 2))
+        odchylka[i]= (1 / ( i + 1 )) * sum((data[0 : i + 1] - a_prumer_od_poc[0 : i + 1]) ** 2)
     return odchylka
 
 def srovnej(res, data, pocet_stavu = 3):
