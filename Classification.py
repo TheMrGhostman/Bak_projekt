@@ -75,11 +75,11 @@ def rozptyl_fce(data, okno = 10):
     return rozptyl
 
 
-def rozptyl_od_poc_fce(data, a_prumer_od_poc):
-    odchylka = np.zeros(len(data))
-    for i in range(len(data)):
-        odchylka[i]= (1 / ( i + 1 )) * sum((data[0 : i + 1] - a_prumer_od_poc[0 : i + 1]) ** 2)
-    return odchylka
+# def rozptyl_od_poc_fce(data, a_prumer_od_poc):
+#     odchylka = np.zeros(len(data))
+#     for i in range(len(data)):
+#         odchylka[i]= (1 / ( i + 1 )) * sum((data[0 : i + 1] - a_prumer_od_poc[0 : i + 1]) ** 2)
+#     return odchylka
 
 def srovnej(res, data, pocet_stavu = 3):
     # já vlastně přehazju data tak aby byla co největší schoda s res (skutečné výsledky)
@@ -207,7 +207,7 @@ def Precision_n_Recall(výsledek, stavy, pocet_stavu, srovnat = True):
 
 def Set_Features(data_set, šum = True, velikost_sumu = 1/40, delka_okna = 10, prvni_derivace = True,
                druha_derivace = True, suma_zleva = False, aritmeticky_prumer = False,
-               rozptyl = False, rozptyl_od_pocatku = False, vypis_nastacene_vlastnosti = False):
+               rozptyl = False, vypis_nastacene_vlastnosti = False):
 
     if vypis_nastacene_vlastnosti == True:
         print('Délka okna:', delka_okna,
@@ -217,8 +217,7 @@ def Set_Features(data_set, šum = True, velikost_sumu = 1/40, delka_okna = 10, p
               '\n Druha_derivace:', druha_derivace,
               '\n Suma_zleva:', suma_zleva,
               '\n Aritmeticky_prumer:', aritmeticky_prumer,
-              '\n Rozptyl:', rozptyl,
-              '\n Rozptyl_od_pocatku:', rozptyl_od_pocatku)
+              '\n Rozptyl:', rozptyl)
 
     X = np.array(data_set)
     vlastnosti = np.zeros(6).tolist()
@@ -257,12 +256,6 @@ def Set_Features(data_set, šum = True, velikost_sumu = 1/40, delka_okna = 10, p
         X = np.vstack([X, Rozptyl])
         vlastnosti[4] = Rozptyl
 
-    if rozptyl_od_pocatku == True:
-        aritmetiky_prumer_od_pocatku = np.cumsum(XX) / (np.arange(len(XX)) + 1)
-        Rozpt = rozptyl_od_poc_fce(XX, aritmetiky_prumer_od_pocatku)
-        X = np.vstack([X, Rozpt])
-        vlastnosti[5] = Rozpt
-
     # transponuju teď už matici původního data setu a features
     return (X.T, XX, vlastnosti)
 
@@ -272,11 +265,10 @@ def Set_Features(data_set, šum = True, velikost_sumu = 1/40, delka_okna = 10, p
 def klasifikuj(data_set, kontolni_data_set, pocet_stavu = 2, šum = True,
                velikost_sumu = 1/40, delka_okna = 10, prvni_derivace = True,
                druha_derivace = False, suma_zleva = False, aritmeticky_prumer = False,
-               rozptyl = False, rozptyl_od_pocatku = False, kresli_a_piš = True):
+               rozptyl = False, kresli_a_piš = True):
 
     [X, XX, vlastnosti] = Set_Features(data_set, šum, velikost_sumu, delka_okna, prvni_derivace,
-               druha_derivace, suma_zleva, aritmeticky_prumer, rozptyl, rozptyl_od_pocatku,
-               kresli_a_piš)
+               druha_derivace, suma_zleva, aritmeticky_prumer, rozptyl, kresli_a_piš)
 
     warnings.filterwarnings('ignore')
 
@@ -305,11 +297,8 @@ def klasifikuj(data_set, kontolni_data_set, pocet_stavu = 2, šum = True,
         if aritmeticky_prumer == True:
             plt.plot(vlastnosti[3])
 
-        if rozptyl_od_pocatku == True:
-            plt.plot(vlastnosti[4])
-
         if rozptyl == True:
-            plt.plot(vlastnosti[5])
+            plt.plot(vlastnosti[4])
 
         plt.show()
 
@@ -326,31 +315,31 @@ def přesnost_klasifikace(D, řešení, šum, velikost_sumu, počet_stavů, delk
     # hodnoty z každé klasifikace ([úspěšnost, chyby])
     dN = []
     # tabulka hodnot v pandas
-    means = np.zeros((63,2))
+    means = np.zeros((2**5 -1,2))
     # střední hodnoty jsou 2D matice, kde první sloupec je přesnost a druhý je počet chyb
     combinace = []
     # kombinace
     iterace = 0
 
-    time=np.zeros(63)
+    time=np.zeros(2**5 - 1)
     # vektor časů průběhu kombinací
 
-    for combin in it.product([0,1],repeat=6):
+    for combin in it.product([0,1],repeat=5):
         # repeat je počet možných feature, který lze použít
         start = timeit.default_timer()
 
-        if combin == (0,0,0,0,0,0):
+        if combin == (0,0,0,0,0):
              # kombinace feature (0,0,0,0,0,0) je k ničemu, stejně jí HMM nepřechroustá a spadne
             continue
 
         combinace.append(combin)
 
         temp = klasifikuj(D, řešení, počet_stavů, šum, velikost_sumu, delka_okna,
-                          combin[0], combin[1], combin[2], combin[3], combin[4], combin[5], False)
+                          combin[0], combin[1], combin[2], combin[3], combin[4], False)
 
         for i in range(počet_opakování-1 ):
             temp = np.vstack((temp, klasifikuj(D, řešení, počet_stavů, šum, velikost_sumu, delka_okna,
-                                               combin[0], combin[1], combin[2], combin[3], combin[4], combin[5], False)))
+                                               combin[0], combin[1], combin[2], combin[3], combin[4], False)))
 
         N.append(temp)
 

@@ -46,17 +46,17 @@ def Test_RF():
     else:
         return("Nefunguje")
 
-def Test_ROPF():
-    aritmetiky_prumer_od_pocatku = np.cumsum(data)/(np.arange(len(data))+1)
-
-    test_data = CL.rozptyl_od_poc_fce(data, aritmetiky_prumer_od_pocatku)
-
-    real_result = np.load(way + "Unit_test_pro_ROPF.npy")
-
-    if(np.allclose(test_data,real_result)):
-        return("Funguje")
-    else:
-        return("Nefunguje")
+# def Test_ROPF():
+#     aritmetiky_prumer_od_pocatku = np.cumsum(data)/(np.arange(len(data))+1)
+#
+#     test_data = CL.rozptyl_od_poc_fce(data, aritmetiky_prumer_od_pocatku)
+#
+#     real_result = np.load(way + "Unit_test_pro_ROPF.npy")
+#
+#     if(np.allclose(test_data,real_result)):
+#         return("Funguje")
+#     else:
+#         return("Nefunguje")
 
 def Test_srovnej():
     res_data = np.load(way + 'Unit_test_pro_srovnej_result.npy')
@@ -117,7 +117,6 @@ def main_all():
     "\nVáhová suma zleva: ", Test_SZL(),
     "\nÚsekový aritmetický průměr: ", Test_ARPF(),
     "\nÚsekový rozptyl: ", Test_RF(),
-    "\nRozptyl od počátku: ", Test_ROPF(),
     "\nSorovnánvací funkce: ", Test_srovnej(),
     "\nConfusion matrix: ", Test_Conf_Mat(),
     "\nF-míra pro dva stavy: ", Test_FM(),
