@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import itertools as it
 import timeit
+import copy
 
 def Derivace(data, krok = 1):
     data = np.array(data)
@@ -185,7 +186,7 @@ def F_Measure(výsledek, stavy, pocet_stavu, srovnat = True):
         FM[k] = 2 * tabulka[k,k] / (sum(tabulka[k,:]) + sum(tabulka[:,k]))
     # vracím [FM vektor, FM macro]
     # FM je F1_score('none') a suma je F1_score("macro") což je průměr F1 z všech tříd
-    print(tabulka)
+    #print(tabulka)
     return [FM, sum(FM) / pocet_stavu]
 
 def Precision_n_Recall(výsledek, stavy, pocet_stavu, srovnat = True):
@@ -197,11 +198,11 @@ def Precision_n_Recall(výsledek, stavy, pocet_stavu, srovnat = True):
         recall[k] = tabulka[k,k] / sum(tabulka[k,:])
         if isnan(precision[k]):
             precision[k] = 0
-            print("Precision was NaN ")
+            #print("Precision was NaN ")
         if isnan(recall[k]):
             recall[k] = 0
-            print("Recall was NaN")
-    print(tabulka)
+            #print("Recall was NaN")
+    #print(tabulka)
     return [precision, recall]
 
 
@@ -329,7 +330,7 @@ def přesnost_klasifikace(D, řešení, šum, velikost_sumu, počet_stavů, delk
         start = timeit.default_timer()
 
         if combin == (0,0,0,0,0):
-             # kombinace feature (0,0,0,0,0,0) je k ničemu, stejně jí HMM nepřechroustá a spadne
+             # kombinace feature (0,0,0,0,0) je k ničemu, stejně jí HMM nepřechroustá a spadne
             continue
 
         combinace.append(combin)
@@ -359,3 +360,86 @@ def přesnost_klasifikace(D, řešení, šum, velikost_sumu, počet_stavů, delk
         iterace = iterace + 1
 
     return [N, dN, means, combinace, time]
+#################################################################
+
+
+def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = []):
+    warnings.filterwarnings('ignore')
+    if parametry:
+        if not delka_okna:
+            delka_okna = 10
+        if len(parametry) < 5:
+            parametry = parametry + np.zeros(5-len(parametry)).tolist()
+
+        training_data = Set_Features(train_data[0], False, 0, delka_okna, parametry[0], parametry[1],parametry[2],
+                                     parametry[3], parametry[4])[0]
+        for train in train_data[1:]:
+            training_data = np.vstack((training_data, Set_Features(train, False, 0, delka_okna, parametry[0], parametry[1],
+                                                                   parametry[2], parametry[3], parametry[4])[0]))
+        testing_data = Set_Features(test_data, False, 0, delka_okna, parametry[0], parametry[1], parametry[2],
+                                    parametry[3], parametry[4])[0]
+
+
+        CLF = copy.copy(model)
+        CLF.fit(training_data)
+        states = CLF.predict(testing_data)
+
+        [acc, mis] = Accuracy(Labely, states, 3)
+        [f, fa] = F_Measure(Labely, states, 3)
+        [p, r] = Precision_n_Recall(Labely,states,3)
+        panda = list(zip([tuple(parametry),0], [delka_okna,0], [acc,0], [mis,0], [f[0],0], [f[1],0],
+                                                [f[2],0], [fa,0], [p[0],0], [p[1],0], [p[2],0], [r[0],0], [r[1],0], [r[2],0]))
+        dpanda = pd.DataFrame(data = panda, columns = ['Kombinace rysů','délka úseku', 'Accuracy', 'Chyby',
+                                                    'F míra stavu 0', 'F míra stavu 1', 'F míra stavu 2',
+                                                    'F míra průměrná', 'Precision stavu 0','Precision stavu 1',
+                                                    'Precision stavu 2', 'Recall stavu 0', 'Recall stavu 1',
+                                                    'Recall stavu 2'])
+        del CLF, training_data, testing_data, f, fa, acc, mis, p, r, states 
+        return dpanda
+    else:
+        [combinace, accuracy, chyby, F0, F1, F2, F_average, P0, P1, P2, R0, R1, R2, okno] = [
+                                                    [],[],[],[],[],[],[],[],[],[],[],[],[],[]]
+
+        if not delka_okna:
+            delka_okna = [10]
+        for okna in delka_okna:
+            iterace = 0
+
+            for combin in it.product([0,1],repeat=5):
+                # repeat je počet možných feature, který lze použít
+                if combin == (0,0,0,0,0):
+                    continue
+                combinace.append(combin)
+                okno.append(okna)
+
+                training_data = Set_Features(train_data[0], False, 0, okna,combin[0], combin[1],
+                                                      combin[2], combin[3], combin[4])[0]
+                for train in train_data[1:]:
+                    training_data = np.vstack((training_data,Set_Features(train, False, 0, okna,combin[0], combin[1],
+                                                      combin[2], combin[3], combin[4])[0]))
+                testing_data = Set_Features(test_data, False, 0, okna, combin[0],combin[1],
+                                            combin[2], combin[3], combin[4])[0]
+
+                CLF = copy.copy(model)
+                CLF.fit(training_data)
+                states = CLF.predict(testing_data)
+
+                [acc, mis] = Accuracy(Labely, states, 3)
+                accuracy.append(acc), chyby.append(mis)
+                [f, fa] = F_Measure(Labely, states, 3)
+                F0.append(f[0]), F1.append(f[1]), F2.append(f[2]), F_average.append(fa)
+                [p, r] = Precision_n_Recall(Labely,states,3)
+                P0.append(p[0]), P1.append(p[1]), P2.append(p[2])
+                R0.append(r[0]), R1.append(r[1]), R2.append(r[2])
+                del CLF, training_data, testing_data, f, fa, acc, mis, p, r, states
+                iterace +=1
+                print(terace)
+
+        panda = list(zip(combince, okno, accuracy, chyby, F0, F1, F2, F_average, P0, P1, P2, R0, R1, R2))
+        dpanda = pd.DataFrame(data = panda, columns = ['Kombinace rysů','délka úseku', 'Accuracy', 'Chyby',
+                                                    'F míra stavu 0', 'F míra stavu 1', 'F míra stavu 2',
+                                                    'F míra průměrná', 'Precision stavu 0','Precision stavu 1',
+                                                    'Precision stavu 2', 'Recall stavu 0', 'Recall stavu 1',
+                                                    'Recall stavu 2'])
+
+        return dpanda

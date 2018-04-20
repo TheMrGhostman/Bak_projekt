@@ -59,9 +59,19 @@ class K_means:
         return Prediction
 
 
-def Nakresly(Data,dims = '2d'):
+# def data_prepare(data):
+#     if np.s
+#     if np.shape(data)[1]>np.shape(data)[0]:
+#
+#
+
+
+
+
+def Nakresly(Data, skupiny, dims = '2d'):
+    #Data = data_prepare(Data)
     barvy = 10 * ["g","r","c","b","k"]
-    clf = K_means()
+    clf = K_means(skupiny)
     clf.fit(Data)
     if dims == '2d':
         for c in clf.centroids:
