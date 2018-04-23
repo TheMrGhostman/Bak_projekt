@@ -76,11 +76,11 @@ def rozptyl_fce(data, okno = 10):
     return rozptyl
 
 
-# def rozptyl_od_poc_fce(data, a_prumer_od_poc):
-#     odchylka = np.zeros(len(data))
-#     for i in range(len(data)):
-#         odchylka[i]= (1 / ( i + 1 )) * sum((data[0 : i + 1] - a_prumer_od_poc[0 : i + 1]) ** 2)
-#     return odchylka
+def rozptyl_od_poc_fce(data, a_prumer_od_poc):
+    odchylka = np.zeros(len(data))
+    for i in range(len(data)):
+        odchylka[i]= (1 / ( i + 1 )) * sum((data[0 : i + 1] - a_prumer_od_poc[0 : i + 1]) ** 2)
+    return odchylka
 
 def srovnej(res, data, pocet_stavu = 3):
     # já vlastně přehazju data tak aby byla co největší schoda s res (skutečné výsledky)
@@ -394,7 +394,7 @@ def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = [
                                                     'F míra průměrná', 'Precision stavu 0','Precision stavu 1',
                                                     'Precision stavu 2', 'Recall stavu 0', 'Recall stavu 1',
                                                     'Recall stavu 2'])
-        del CLF, training_data, testing_data, f, fa, acc, mis, p, r, states 
+        del CLF, training_data, testing_data, f, fa, acc, mis, p, r, states
         return dpanda
     else:
         [combinace, accuracy, chyby, F0, F1, F2, F_average, P0, P1, P2, R0, R1, R2, okno] = [

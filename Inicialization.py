@@ -64,3 +64,14 @@ plt.show()
 CL.klasifikuj(ZZ[1], ZZ[0] , 3, False, 1 , 7 , 0,0,1,1,0)
 lab = np.load(way + "No2_res.npy")
 lab
+
+No1 = np.load(way + "No3.npy")
+plt.plot(No1[0],No1[1])
+plt.show()
+
+
+number = 1111111
+hmode = np.arange(4)
+print(["record number: " + str(number),"hmode", hmode])
+mix = np.asarray(["Record number: ", str(number), "t_hmode: "])
+np.hstack((np.asarray(["Record number: ", str(number), "t_hmode: "]),hmode))
