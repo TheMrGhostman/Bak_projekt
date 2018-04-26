@@ -111,6 +111,17 @@ def Test_PaR():
 def Test_klasifikuj():
     return(0)
 
+def Test_Acc():
+    [acc, mis] = CL.Accuracy(np.hstack((np.ones(10), 2 * np.ones(15), np.zeros(5))),
+                            np.hstack((np.ones(10),np.zeros(15), 2 * np.ones(5))), 3, True)
+    [acc1, mis1] = CL.Accuracy(np.hstack((np.ones(10), 2 * np.ones(15), np.zeros(5))),
+                            np.hstack((np.ones(10),np.zeros(15), 2 * np.ones(5))), 3, False)
+    print(acc, mis, acc1, mis1)
+    if acc == 1.0 and mis == 0 and acc1 == 1/3 and mis1 == 20:
+        return("Funguje")
+    else:
+        return("Nefunguje")
+
 def main_all():
     print("Proběhl test všech funkcí z modulu Classification." )
     print("Derivace: ", Test_Derivace(),
@@ -120,4 +131,5 @@ def main_all():
     "\nSorovnánvací funkce: ", Test_srovnej(),
     "\nConfusion matrix: ", Test_Conf_Mat(),
     "\nF-míra pro dva stavy: ", Test_FM(),
-    "\nPrecision a Recall: ", Test_PaR())
+    "\nPrecision a Recall: ", Test_PaR(),
+    "\nAccuracy: ", Test_Acc())

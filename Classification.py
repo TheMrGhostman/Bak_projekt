@@ -153,18 +153,22 @@ def srovnej(res, data, pocet_stavu = 3):
         return([max(vektor_přesností), v[np.argmax(vektor_přesností),:]])
 
 
-def Accuracy(výsledek, stavy, pocet_stavu):
-    if len(výsledek)!=len(stavy):
-        print("stavy a výsledky nesouhlasí dimenze")
-        return
-    #print(Confusion_Matrix(výsledek, stavy, pocet_stavu))
-    if pocet_stavu <=2:
-        #předpokládám že pří dvou stvech nebudu mít víc chyb než správných klasifikací
-        součet = max(sum(výsledek == stavy),sum(výsledek != stavy))
-        return np.array([součet/len(stavy),len(stavy)-součet])
+def Accuracy(výsledek, stavy, pocet_stavu, srovnat = True):
+    if srovnat:
+        if len(výsledek)!=len(stavy):
+            print("stavy a výsledky nesouhlasí dimenze")
+            return
+            #print(Confusion_Matrix(výsledek, stavy, pocet_stavu))
+        if pocet_stavu <=2:
+                #předpokládám že pří dvou stvech nebudu mít víc chyb než správných klasifikací
+            součet = max(sum(výsledek == stavy),sum(výsledek != stavy))
+            return [součet/len(stavy),len(stavy) - součet]
+        else:
+                přesnost = srovnej(výsledek, stavy)[0]
+                return [přesnost / len(výsledek),int(len(výsledek) - přesnost)]
     else:
-        přesnost = srovnej(výsledek, stavy)[0]
-        return np.array([přesnost / len(výsledek),int(len(výsledek) - přesnost)])
+        sou= sum(výsledek == stavy)
+        return [sou / len(stavy), int(len(stavy) - sou)]
 
 def Confusion_Matrix(výsledek, stavy, pocet_stavu, srovnat = True):
     if srovnat == True:
@@ -363,8 +367,13 @@ def přesnost_klasifikace(D, řešení, šum, velikost_sumu, počet_stavů, delk
 #################################################################
 
 
-def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = []):
+def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = [], unsupervised = True):
     warnings.filterwarnings('ignore')
+    if not unsupervised:
+        labels = train_data[0][2]
+        for lab in test_data[1:]:
+            labels = h.stack((labels,lab[2]))
+        labels = labels.T
     if parametry:
         if not delka_okna:
             delka_okna = 10
@@ -381,12 +390,16 @@ def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = [
 
 
         CLF = copy.copy(model)
-        CLF.fit(training_data)
+        if unsupervised:
+            CLF.fit(training_data)
+        else:
+            CLF.fit(training_data, labels)
+
         states = CLF.predict(testing_data)
 
-        [acc, mis] = Accuracy(Labely, states, 3)
-        [f, fa] = F_Measure(Labely, states, 3)
-        [p, r] = Precision_n_Recall(Labely,states,3)
+        [acc, mis] = Accuracy(Labely, states, 3, unsupervised)
+        [f, fa] = F_Measure(Labely, states, 3, unsupervised)
+        [p, r] = Precision_n_Recall(Labely,states,3, unsupervised)
         panda = list(zip([tuple(parametry),0], [delka_okna,0], [acc,0], [mis,0], [f[0],0], [f[1],0],
                                                 [f[2],0], [fa,0], [p[0],0], [p[1],0], [p[2],0], [r[0],0], [r[1],0], [r[2],0]))
         dpanda = pd.DataFrame(data = panda, columns = ['Kombinace rysů','délka úseku', 'Accuracy', 'Chyby',
@@ -421,14 +434,18 @@ def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = [
                                             combin[2], combin[3], combin[4])[0]
 
                 CLF = copy.copy(model)
-                CLF.fit(training_data)
+                if unsupervised:
+                    CLF.fit(training_data)
+                else:
+                    CLF.fit(training_data, labels)
+
                 states = CLF.predict(testing_data)
 
-                [acc, mis] = Accuracy(Labely, states, 3)
+                [acc, mis] = Accuracy(Labely, states, 3, unsupervised)
                 accuracy.append(acc), chyby.append(mis)
-                [f, fa] = F_Measure(Labely, states, 3)
+                [f, fa] = F_Measure(Labely, states, 3, unsupervised)
                 F0.append(f[0]), F1.append(f[1]), F2.append(f[2]), F_average.append(fa)
-                [p, r] = Precision_n_Recall(Labely,states,3)
+                [p, r] = Precision_n_Recall(Labely,states,3, unsupervised)
                 P0.append(p[0]), P1.append(p[1]), P2.append(p[2])
                 R0.append(r[0]), R1.append(r[1]), R2.append(r[2])
                 del CLF, training_data, testing_data, f, fa, acc, mis, p, r, states
