@@ -10,6 +10,7 @@ import pandas as pd
 import itertools as it
 import timeit
 import copy
+import time
 
 def Derivace(data, krok = 1):
     data = np.array(data)
@@ -52,7 +53,6 @@ def aritmeticky_prumer_fce(data, pozice, okno = 10):
     else:
             u = pozice - okno
             delitel = okno
-
     for i in range(u, pozice):
         Y[i] = Y[i - 1] + data[i]
 
@@ -117,6 +117,9 @@ def srovnej(res, data, pocet_stavu = 3):
             i += 1;
         temp1 = data[i]
         while (data[i] == temp1 or data[i] == temp0):
+            if i >= len(data)-1:
+                temp2 = temp1
+                break
             i += 1
         temp2 = data[i]
         perm = np.array([temp0, temp1, temp2])
@@ -367,35 +370,43 @@ def přesnost_klasifikace(D, řešení, šum, velikost_sumu, počet_stavů, delk
 #################################################################
 
 
-def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = [], unsupervised = True):
+def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsupervised = True):
     warnings.filterwarnings('ignore')
     if not unsupervised:
         labels = train_data[0][2]
         for lab in test_data[1:]:
             labels = h.stack((labels,lab[2]))
         labels = labels.T
+    Labely = test_data[0][2]
+    for lab in test_data[1:]:
+        Labely = np.hstack((Labely, lab[0][2]))
     if parametry:
         if not delka_okna:
             delka_okna = 10
         if len(parametry) < 5:
             parametry = parametry + np.zeros(5-len(parametry)).tolist()
 
-        training_data = Set_Features(train_data[0], False, 0, delka_okna, parametry[0], parametry[1],parametry[2],
+        training_data = Set_Features(train_data[0][1], False, 0, delka_okna, parametry[0], parametry[1],parametry[2],
                                      parametry[3], parametry[4])[0]
         for train in train_data[1:]:
-            training_data = np.vstack((training_data, Set_Features(train, False, 0, delka_okna, parametry[0], parametry[1],
+            training_data = np.vstack((training_data, Set_Features(train[1], False, 0, delka_okna, parametry[0], parametry[1],
                                                                    parametry[2], parametry[3], parametry[4])[0]))
-        testing_data = Set_Features(test_data, False, 0, delka_okna, parametry[0], parametry[1], parametry[2],
+        testing_data = Set_Features(test_data[0][1], False, 0, delka_okna, parametry[0], parametry[1], parametry[2],
                                     parametry[3], parametry[4])[0]
-
+        for test in test_data[1:]:
+            testing_data = np.vstack((testing_data[0][1],Set_Features(test, False, 0, delka_okna, parametry[0], parametry[1], parametry[2],
+                                        parametry[3], parametry[4])[0]))
 
         CLF = copy.copy(model)
         if unsupervised:
+            stf = time.time()
             CLF.fit(training_data)
+            endf = time.time()
         else:
             CLF.fit(training_data, labels)
-
+        stp = time.time()
         states = CLF.predict(testing_data)
+        endp = time.time()
 
         [acc, mis] = Accuracy(Labely, states, 3, unsupervised)
         [f, fa] = F_Measure(Labely, states, 3, unsupervised)
@@ -407,8 +418,8 @@ def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = [
                                                     'F míra průměrná', 'Precision stavu 0','Precision stavu 1',
                                                     'Precision stavu 2', 'Recall stavu 0', 'Recall stavu 1',
                                                     'Recall stavu 2'])
-        del CLF, training_data, testing_data, f, fa, acc, mis, p, r, states
-        return dpanda
+        del CLF, training_data, testing_data, f, fa, acc, mis, p, r #, states
+        return dpanda, states, endf-stf, endp-stp
     else:
         [combinace, accuracy, chyby, F0, F1, F2, F_average, P0, P1, P2, R0, R1, R2, okno] = [
                                                     [],[],[],[],[],[],[],[],[],[],[],[],[],[]]
@@ -425,13 +436,13 @@ def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = [
                 combinace.append(combin)
                 okno.append(okna)
 
-                training_data = Set_Features(train_data[0], False, 0, okna,combin[0], combin[1],
-                                                      combin[2], combin[3], combin[4])[0]
+                training_data = Set_Features(train_data[0][1], False, 0, okna,combin[0], combin[1], combin[2], combin[3], combin[4])[0]
                 for train in train_data[1:]:
-                    training_data = np.vstack((training_data,Set_Features(train, False, 0, okna,combin[0], combin[1],
-                                                      combin[2], combin[3], combin[4])[0]))
-                testing_data = Set_Features(test_data, False, 0, okna, combin[0],combin[1],
-                                            combin[2], combin[3], combin[4])[0]
+                    training_data = np.vstack((training_data,Set_Features(train[1], False, 0, okna, combin[0], combin[1], combin[2], combin[3], combin[4])[0]))
+
+                testing_data = Set_Features(test_data[0][1], False, 0, okna, combin[0],combin[1], combin[2], combin[3], combin[4])[0]
+                for test in test_data[1:]:
+                    testinging_data = np.vstack((testing_data,Set_Features(test[0][1], False, 0, okna,combin[0], combin[1], combin[2], combin[3], combin[4])[0]))
 
                 CLF = copy.copy(model)
                 if unsupervised:
@@ -440,6 +451,7 @@ def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = [
                     CLF.fit(training_data, labels)
 
                 states = CLF.predict(testing_data)
+                print(states)
 
                 [acc, mis] = Accuracy(Labely, states, 3, unsupervised)
                 accuracy.append(acc), chyby.append(mis)
@@ -450,9 +462,9 @@ def validuj(model, train_data, test_data, Labely, delka_okna =[], parametry  = [
                 R0.append(r[0]), R1.append(r[1]), R2.append(r[2])
                 del CLF, training_data, testing_data, f, fa, acc, mis, p, r, states
                 iterace +=1
-                print(terace)
+                print(iterace)
 
-        panda = list(zip(combince, okno, accuracy, chyby, F0, F1, F2, F_average, P0, P1, P2, R0, R1, R2))
+        panda = list(zip(combinace, okno, accuracy, chyby, F0, F1, F2, F_average, P0, P1, P2, R0, R1, R2))
         dpanda = pd.DataFrame(data = panda, columns = ['Kombinace rysů','délka úseku', 'Accuracy', 'Chyby',
                                                     'F míra stavu 0', 'F míra stavu 1', 'F míra stavu 2',
                                                     'F míra průměrná', 'Precision stavu 0','Precision stavu 1',

@@ -44,7 +44,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111, projection = '3d')
 ax.scatter(Y,Z,X)
 plt.show()
-km.Nakresly(XX, "3d")
+km.Nakresly(XX,2, "3d")
 
 clf = km.K_means(2)
 clf.fit(XX)

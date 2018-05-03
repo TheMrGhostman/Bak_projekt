@@ -102,29 +102,29 @@ def Nakresly(Data, skupiny, dims = '2d'):
         del ind
 
 
-#clf = K_means()
-#clf.fit(Y)
-
-#for c
- #in clf.centroids:
+# clf = K_means()
+# clf.fit(Y)
+#
+# for c
+#  in clf.centroids:
 #    plt.scatter(clf.centroids[c][0], clf.centroids[c][1], marker = "o" ,
 #    color = "blue" , s = 100, linewidths = 5)
-
-#for c in clf.classifications:
+#
+# for c in clf.classifications:
 #    color = colors[c]
 #    for features in clf.classifications[c]:
 #        plt.scatter(features[0], features[1], marker = "x" , color=color , s = 100, linewidths = 5)
-
-#unknowns = np.array([[1,3],
+#
+# unknowns = np.array([[1,3],
 #                    [8,9],
 #                    [0,3],
 #                    [5,4],
 #                    [6,4]])
-#for u in unknowns:
+# for u in unknowns:
 #    classify = clf.Predict(u)
 #    plt.scatter(u[0], u[1], marker = "." , color = colors[classify], s = 100, linewidths = 5)
 #
-#plt.show()
+# plt.show()
 #
 #
 YY = np.array([[1,2,3], [1.5,1.8,1.4], [5,8,7], [8,8,8], [1, 0.6, 0.8], [9,11,10]])
@@ -133,7 +133,7 @@ ax = fig.add_subplot(111, projection = '3d')
 ax.scatter(YY[:, 0], YY[:, 1], YY[:,2], s = 100 , color = 'red')
 plt.show()
 
-Nakresly(YY,'2d')
+Nakresly(YY,2, '2d')
 #clf = K_means()
 #clf.fit(YY)
 
@@ -171,7 +171,7 @@ ax = fig.add_subplot(111, projection = '3d')
 ax.scatter(YYY[:,0], YYY[:,1], YYY[:,2], s = 100 , color = 'orange')
 plt.show()
 
-Nakresly(YYY,'3d')
+Nakresly(YYY,2,'3d')
 
 #fig = plt.figure()
 #ax = fig.add_subplot(111, projection = '3d')
