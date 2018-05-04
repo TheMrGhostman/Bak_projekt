@@ -59,15 +59,16 @@ def moving_mean(a, window, out):
 
 @guvectorize(['void(float64[:], int64, float64[:])'], '(n),()->(n)')
 def moving_var(data, okno, rozptyl):
-    mm = CL.moving_mean(data, okno)
+    mm = moving_mean(data, okno)
     dolni_index = 0
     count = 0
     for i in range(okno):
         count+=1
         rozptyl[i] = sum((data[dolni_index: i + 1] - mm[i])**2)*(1/count)
-    for i in range(okno, len(X)):
+    for i in range(okno, len(data)):
         dolni_index = i + 1 - okno
         rozptyl[i] = sum((data[dolni_index: i + 1] - mm[i])**2)*(1/count)
+
 
 def rozptyl_od_poc_fce(data, a_prumer_od_poc):
     odchylka = np.zeros(len(data))
