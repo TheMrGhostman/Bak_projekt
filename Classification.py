@@ -6,6 +6,7 @@ import numpy as np
 from sympy.utilities.iterables import multiset_permutations
 from hmmlearn.hmm import GaussianHMM
 import matplotlib.pyplot as plt
+from numba import guvectorize, vectorize, float64
 import pandas as pd
 import itertools as it
 import timeit
@@ -44,37 +45,29 @@ def suma_zleva_fce(data, pozice, okno = 10):
     return sum(Y) / delitel
 
 
-def aritmeticky_prumer_fce(data, pozice, okno = 10):
-    pozice += 1
-    Y = np.zeros(len(data))
-    if pozice - okno < 0:
-        u = 0
-        delitel = pozice
-    else:
-            u = pozice - okno
-            delitel = okno
-    for i in range(u, pozice):
-        Y[i] = Y[i - 1] + data[i]
+@guvectorize(['void(float64[:], int64, float64[:])'], '(n),()->(n)')
+def moving_mean(a, window, out):
+    asum = 0.0
+    count = 0
+    for i in range(window):
+        asum += a[i]
+        count += 1
+        out[i] = asum / count
+    for i in range(window, len(a)):
+        asum += a[i] - a[i - window]
+        out[i] = asum / count
 
-    return Y[pozice-1] / delitel
-
-
-def rozptyl_fce(data, okno = 10):
-    rozptyl = np.zeros(len(data))
-    Aritm = [aritmeticky_prumer_fce(data, x, okno) for x in range(len(data))]
-
-    for i in range(len(data)):
-        if i + 1 - okno < 0:
-            dolni_index = 0;
-            delitel = i + 1
-        else:
-            dolni_index = i + 1 - okno
-            delitel = okno
-
-        rozptyl[i] = (1 / delitel) * sum((data[dolni_index: i + 1] - Aritm[dolni_index: i + 1]) ** 2)
-
-    return rozptyl
-
+@guvectorize(['void(float64[:], int64, float64[:])'], '(n),()->(n)')
+def moving_var(data, okno, rozptyl):
+    mm = CL.moving_mean(data, okno)
+    dolni_index = 0
+    count = 0
+    for i in range(okno):
+        count+=1
+        rozptyl[i] = sum((data[dolni_index: i + 1] - mm[i])**2)*(1/count)
+    for i in range(okno, len(X)):
+        dolni_index = i + 1 - okno
+        rozptyl[i] = sum((data[dolni_index: i + 1] - mm[i])**2)*(1/count)
 
 def rozptyl_od_poc_fce(data, a_prumer_od_poc):
     odchylka = np.zeros(len(data))
@@ -255,12 +248,13 @@ def Set_Features(data_set, šum = True, velikost_sumu = 1/40, delka_okna = 10, p
         vlastnosti[2] = Suma_L
 
     if aritmeticky_prumer == True:
-        Arit_Pr = [aritmeticky_prumer_fce(XX, x, delka_okna) for x in range(len(XX))]
+        #Arit_Pr = [aritmeticky_prumer_fce(XX, x, delka_okna) for x in range(len(XX))]
+        Arit_pr = moving_mean(XX, delka_okna)
         X = np.vstack([X, Arit_Pr])
         vlastnosti[3] = Arit_Pr
 
     if rozptyl == True:
-        Rozptyl = rozptyl_fce(XX, delka_okna)
+        Rozptyl = moving_var(XX, delka_okna)
         X = np.vstack([X, Rozptyl])
         vlastnosti[4] = Rozptyl
 
