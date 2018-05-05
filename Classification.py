@@ -66,79 +66,42 @@ def rozptyl_od_poc_fce(data, a_prumer_od_poc):
         odchylka[i]= (1 / ( i + 1 )) * sum((data[0 : i + 1] - a_prumer_od_poc[0 : i + 1]) ** 2)
     return odchylka
 
-def srovnej(res, data, pocet_stavu = 3):
+def Srovnej(res, data, pocet_stavu = 3):
     # já vlastně přehazju data tak aby byla co největší schoda s res (skutečné výsledky)
     # když za data zadám stavy dostanu pak vektor stavů přerovnaný podle nám známého řešení(res)
     # to znamená že se bych je pak mohl přiradit správně do tříd, pokud bude známo řešení dopředu
-
     if(pocet_stavu == 2):
-        temp0 = data[0]
-        i = 0
-        while temp0 == data[i]:
-            i += 1;
-        temp1 = data[i]
+        [temp0, temp1] = np.unique(data)
 
         reverse = np.copy(data)
-        for i in range(len(data)):
-            if reverse[i] == temp0:
-                reverse[i] = -1
-            if reverse[i] == temp1:
-                reverse[i] = -2
+        reverse[reverse == temp0] = -1
+        reverse[reverse == temp1] = temp0
+        reverse[reverse == -1] = temp1
 
-        for i in range(len(data)):
-            if reverse[i] == -1:
-                reverse[i] = temp1
-            if reverse[i] == -2:
-                reverse[i] = temp0
-
-        vektor_přesností = [sum(res == data),sum(res == reverse)]
-        v = np.vstack((data,reverse))
-        return([max(vektor_přesností),v[np.argmax(vektor_přesností),:]])
+        right_sorted = [sum(res == data),sum(res == reverse)]
+        vector = np.vstack((data,reverse))
+        return([max(right_sorted), vector[np.argmax(right_sorted),:]])
     else:
-        temp0 = data[0]
-        i = 0
-        while temp0 == data[i]:
-            i += 1;
-        temp1 = data[i]
-        while (data[i] == temp1 or data[i] == temp0):
-            if i >= len(data)-1:
-                temp2 = temp1
-                break
-            i += 1
-        temp2 = data[i]
+        if len(np.unique(data)) == 2:
+            Srovnej(res, data, 2)
+
+        [temp0, temp1, temp2] = np.unique(data)
         perm = np.array([temp0, temp1, temp2])
-
-        vektor_přesností = []
-
-        v = np.copy(data)
+        right_sorted = []
+        vector = np.copy(data)
         for i in range(factorial(pocet_stavu) - 1):
-            v = np.vstack((v, np.copy(data)))
+            vector = np.vstack((vector, np.copy(data)))
         j = 0
         for p in multiset_permutations(perm):
-            for i in range(len(v[j])):
-                if v[j,i] == temp0:
-                    v[j,i] = -1
-                if v[j,i] == temp1:
-                    v[j,i] = -2
-                if v[j,i] == temp2:
-                    v[j,i] = -3
-
-            [t0, t1 , t2] = p
-
-            for i in range(len(v[j])):
-                if v[j,i] == -1:
-                    v[j,i] = t0
-                if v[j,i] == -2:
-                    v[j,i] = t1
-                if v[j,i] == -3:
-                    v[j,i] = t2
-
-            součet = sum(v[j] == res)
-
-            vektor_přesností.append(součet)
+            vector[j][vector[j] == temp0] = -1
+            vector[j][vector[j] == temp1] = -2
+            vector[j][vector[j] == temp2] = -3
+            vector[j][vector[j] == -1] = p[0]
+            vector[j][vector[j] == -2] = p[1]
+            vector[j][vector[j] == -3] = p[2]
+            right_sorted.append(sum(vector[j] == res))
             j+=1
-        return([max(vektor_přesností), v[np.argmax(vektor_přesností),:]])
-
+        return([max(right_sorted), vector[np.argmax(right_sorted),:]])
 
 def Accuracy(výsledek, stavy, pocet_stavu, srovnat = True):
     if srovnat:
@@ -151,7 +114,7 @@ def Accuracy(výsledek, stavy, pocet_stavu, srovnat = True):
             součet = max(sum(výsledek == stavy),sum(výsledek != stavy))
             return [součet/len(stavy),len(stavy) - součet]
         else:
-                přesnost = srovnej(výsledek, stavy)[0]
+                přesnost = Srovnej(výsledek, stavy)[0]
                 return [přesnost / len(výsledek),int(len(výsledek) - přesnost)]
     else:
         sou= sum(výsledek == stavy)
@@ -159,7 +122,7 @@ def Accuracy(výsledek, stavy, pocet_stavu, srovnat = True):
 
 def Confusion_Matrix(výsledek, stavy, pocet_stavu, srovnat = True):
     if srovnat == True:
-        srovnaný = srovnej(výsledek, stavy, pocet_stavu)[1]
+        srovnaný = Srovnej(výsledek, stavy, pocet_stavu)[1]
         #print(srovnaný)
         #print(výsledek)
     else:

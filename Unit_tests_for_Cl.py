@@ -50,7 +50,7 @@ def Test_srovnej():
     res_data = np.load(way + 'Unit_test_pro_srovnej_result.npy')
     data = np.load(way + 'Unit_test_pro_srovnej_stavy.npy')
     real_result = np.load(way + 'Unit_test_pro_srovnej_kontrola.npy')
-    srovnani = Cl.srovnej(data, res_data)
+    srovnani = Cl.Srovnej(data, res_data)
     #původně bylo CL.srovnej(res_data,data) ale po opravě chyby ve funkci srovnej se to musí zadávat takto
     if(srovnani[0] == 197 and np.allclose(srovnani[1], real_result)):
         return("Funguje")
