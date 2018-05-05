@@ -13,37 +13,27 @@ import timeit
 import copy
 import time
 
-def Derivace(data, krok = 1):
+@guvectorize(['void(float64[:], int64, float64[:])'], '(n),()->(n)')
+def Derivace(data, krok, derivace):
     data = np.array(data)
-    derivace = np.zeros(len(data))
-    for i in range(len(data)):
-        if i == 0:
-            derivace[i] = (data[1]-data[0])/krok
-        elif i == len(data)-1:
-            derivace[i] = (data[i]-data[i-1])/krok
-        else:
+    kon = len(data)-1
+    derivace[0] = (data[1]-data[0])/krok
+    derivace[kon] = (data[kon]-data[kon-1])/krok
+    for i in range(1,len(data)-1):
             derivace[i] = (data[i+1]-data[i-1])/(2*krok)
-    return derivace
 
-def suma_zleva_fce(data, pozice, okno = 10):
-    pozice += 1
-    Y = np.zeros(len(data))
-    temp_generator = [0.9 ** x for x in range(pozice)]
-
-    if pozice-okno < 0:
-        u = 0
-    else:
-            u = pozice - okno
-    for i in range(u, pozice):
-        Y[i] = temp_generator[pozice - 1 - i] * data[i]
-
-    if pozice >= okno:
-        delitel = okno
-    else:
-        delitel = pozice
-
-    return sum(Y) / delitel
-
+@guvectorize(['void(float64[:], int64, float64[:])'], '(n),()->(n)')
+def exp_moving_mean(data, window, emm):
+    gamma = 0.9**np.arange(window)
+    gamm = 0.9**np.arange(window)[::-1]
+    count = 0
+    dolni_index = 0
+    for i in range(window):
+        count+=1
+        emm[i] = (sum(data[dolni_index: i + 1]*gamma[dolni_index: i + 1][::-1]))*(1/count)
+    for i in range(window, len(data)):
+        dolni_index = i + 1 - window
+        emm[i] = (sum(data[dolni_index: i + 1]*gamm))*(1/count)
 
 @guvectorize(['void(float64[:], int64, float64[:])'], '(n),()->(n)')
 def moving_mean(a, window, out):
@@ -233,18 +223,19 @@ def Set_Features(data_set, šum = True, velikost_sumu = 1/40, delka_okna = 10, p
     # do X jsou odteď přidané i feature
 
     if prvni_derivace == True:
-        Dx1 = Derivace(XX)
+        Dx1 = Derivace(XX,1)
         X = np.vstack([X, Dx1])
         vlastnosti[0] = Dx1
 
     if druha_derivace == True:
-        Dx1 = Derivace(XX)
-        Dx2 = Derivace(Dx1)
+        Dx1 = Derivace(XX,1)
+        Dx2 = Derivace(Dx1,1)
         X = np.vstack([X, Dx2])
         vlastnosti[1] = Dx2
 
     if suma_zleva == True:
-        Suma_L = [suma_zleva_fce(XX, x, delka_okna) for x in range(len(XX))]
+        Suma_L = exp_moving_mean(data, delka_okna)
+        #[suma_zleva_fce(XX, x, delka_okna) for x in range(len(XX))]
         X = np.vstack([X, Suma_L])
         vlastnosti[2] = Suma_L
 

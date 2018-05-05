@@ -10,14 +10,15 @@ data = np.hstack((3*np.ones(10), np.zeros(5), 2 * np.ones(10)))
 
 def Test_Derivace():
     test_data = [1, 2, 4, 7, 11, 16]
-    derivace = Cl.Derivace(test_data)
+    derivace = Cl.Derivace(test_data,1)
     if(np.allclose(derivace, np.gradient(test_data))):
         return("Funguje")
     else:
         return("Nefunguje")
 
 def Test_SZL():
-    test_data = np.array([Cl.suma_zleva_fce(np.ones(20), i, 10) for i in range(len(np.ones(20)))])
+    test_data = Cl.exp_moving_mean(np.ones(20),10)
+    #np.array([Cl.suma_zleva_fce(np.ones(20), i, 10) for i in range(len(np.ones(20)))])
 
     real_result = np.load(way + "Unit_test_pro_SZLF.npy")
 
