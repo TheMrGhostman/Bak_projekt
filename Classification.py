@@ -23,7 +23,7 @@ def Derivace(data, krok, derivace):
             derivace[i] = (data[i+1]-data[i-1])/(2*krok)
 
 @guvectorize(['void(float64[:], int64, float64[:])'], '(n),()->(n)')
-def exp_moving_mean(data, window, emm):
+def Exp_Moving_Mean(data, window, emm):
     gamma = 0.9**np.arange(window)
     gamm = 0.9**np.arange(window)[::-1]
     count = 0
@@ -36,7 +36,7 @@ def exp_moving_mean(data, window, emm):
         emm[i] = (sum(data[dolni_index: i + 1]*gamm))*(1/count)
 
 @guvectorize(['void(float64[:], int64, float64[:])'], '(n),()->(n)')
-def moving_mean(a, window, out):
+def Moving_Mean(a, window, out):
     asum = 0.0
     count = 0
     for i in range(window):
@@ -48,8 +48,8 @@ def moving_mean(a, window, out):
         out[i] = asum / count
 
 @guvectorize(['void(float64[:], int64, float64[:])'], '(n),()->(n)')
-def moving_var(data, okno, rozptyl):
-    mm = moving_mean(data, okno)
+def Moving_Variance(data, okno, rozptyl):
+    mm = Moving_Mean(data, okno)
     dolni_index = 0
     count = 0
     for i in range(okno):
@@ -234,19 +234,19 @@ def Set_Features(data_set, šum = True, velikost_sumu = 1/40, delka_okna = 10, p
         vlastnosti[1] = Dx2
 
     if suma_zleva == True:
-        Suma_L = exp_moving_mean(data, delka_okna)
+        Suma_L = Exp_Moving_Mean(data, delka_okna)
         #[suma_zleva_fce(XX, x, delka_okna) for x in range(len(XX))]
         X = np.vstack([X, Suma_L])
         vlastnosti[2] = Suma_L
 
     if aritmeticky_prumer == True:
         #Arit_Pr = [aritmeticky_prumer_fce(XX, x, delka_okna) for x in range(len(XX))]
-        Arit_pr = moving_mean(XX, delka_okna)
+        Arit_pr = Moving_Mean(XX, delka_okna)
         X = np.vstack([X, Arit_Pr])
         vlastnosti[3] = Arit_Pr
 
     if rozptyl == True:
-        Rozptyl = moving_var(XX, delka_okna)
+        Rozptyl = Moving_Variance(XX, delka_okna)
         X = np.vstack([X, Rozptyl])
         vlastnosti[4] = Rozptyl
 

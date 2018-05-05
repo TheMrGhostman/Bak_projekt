@@ -17,7 +17,7 @@ def Test_Derivace():
         return("Nefunguje")
 
 def Test_SZL():
-    test_data = Cl.exp_moving_mean(np.ones(20),10)
+    test_data = Cl.Exp_Moving_Mean(np.ones(20),10)
     #np.array([Cl.suma_zleva_fce(np.ones(20), i, 10) for i in range(len(np.ones(20)))])
 
     real_result = np.load(way + "Unit_test_pro_SZLF.npy")
@@ -28,7 +28,7 @@ def Test_SZL():
         return("Nefunguje")
 
 def Test_ARPF():
-    test_data = Cl.moving_mean(data, 5)
+    test_data = Cl.Moving_Mean(data, 5)
     real_result = np.load(way + "Unit_test_pro_ARPF.npy")
 
     if(np.allclose(test_data,real_result)):
@@ -37,7 +37,7 @@ def Test_ARPF():
         return("Nefunguje")
 
 def Test_RF():
-    test_data = Cl.moving_var(data, 5)
+    test_data = Cl.Moving_Variance(data, 5)
     real_result = np.load(way + "Unit_test_pro_RF.npy")
 
     if(np.allclose(test_data,real_result)):
