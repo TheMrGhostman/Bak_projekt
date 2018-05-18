@@ -31,8 +31,10 @@ way = os.getcwd() + "/Data_npy/"
 # print(states)
 
 X = np.load(way + "Synteticka_data_sum_0.025.npy")
-Y = [CL.aritmeticky_prumer_fce(X, x, 5) for x in range(len(X))]
-Z = [CL.suma_zleva_fce(X, x, 5) for x in range(len(X))]
+Y = CL.Moving_Mean(X,5)
+#[CL.aritmeticky_prumer_fce(X, x, 5) for x in range(len(X))]
+Z = CL.Exp_Moving_Mean(X,5)
+#[CL.suma_zleva_fce(X, x, 5) for x in range(len(X))]
 XX = np.vstack((Y,Z,X)).T
 XX
 # np.shape(XX)
@@ -75,3 +77,28 @@ hmode = np.arange(4)
 print(["record number: " + str(number),"hmode", hmode])
 mix = np.asarray(["Record number: ", str(number), "t_hmode: "])
 np.hstack((np.asarray(["Record number: ", str(number), "t_hmode: "]),hmode))
+
+d = np.linspace(-5,4,10)/10
+d
+
+x = np.random.randint(np.min(d)*10,np.max(d)*10, size=(10,3))
+x
+
+r = np.random.choice(len(x)-1,3)
+r
+x[r[0]]
+
+Y = np.array([[1,2], [1.5,1.8], [5,8], [8,8], [1, 0.6], [9,11]])
+initial_centroids = np.random.choice(np.shape(Y)[0]-1, 2)
+centroids = np.zeros(2).tolist()
+for i in range(2):
+    centroids[i] = Y[initial_centroids[i]]
+centroids
+initial_centroids
+
+
+Y = np.array([[1,2], [1.5,1.8], [5,8], [8,8], [1, 0.6], [9,11]])
+Y
+Y[0]
+Y[initial_centroids[0]]
+np.shape(Y)[0]-1

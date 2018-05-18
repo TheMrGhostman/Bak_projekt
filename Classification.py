@@ -83,9 +83,11 @@ def Srovnej(res, data, pocet_stavu = 3):
         return([max(right_sorted), vector[np.argmax(right_sorted),:]])
     else:
         if len(np.unique(data)) == 2:
-            Srovnej(res, data, 2)
-
-        [temp0, temp1, temp2] = np.unique(data)
+            #Srovnej(res, data, 2)
+            [temp0, temp1] = np.unique(data)
+            temp2 = copy.copy(temp1)
+        else:
+            [temp0, temp1, temp2] = np.unique(data)
         perm = np.array([temp0, temp1, temp2])
         right_sorted = []
         vector = np.copy(data)
@@ -197,14 +199,14 @@ def Set_Features(data_set, šum = True, velikost_sumu = 1/40, delka_okna = 10, p
         vlastnosti[1] = Dx2
 
     if suma_zleva == True:
-        Suma_L = Exp_Moving_Mean(data, delka_okna)
+        Suma_L = Exp_Moving_Mean(XX, delka_okna)
         #[suma_zleva_fce(XX, x, delka_okna) for x in range(len(XX))]
         X = np.vstack([X, Suma_L])
         vlastnosti[2] = Suma_L
 
     if aritmeticky_prumer == True:
         #Arit_Pr = [aritmeticky_prumer_fce(XX, x, delka_okna) for x in range(len(XX))]
-        Arit_pr = Moving_Mean(XX, delka_okna)
+        Arit_Pr = Moving_Mean(XX, delka_okna)
         X = np.vstack([X, Arit_Pr])
         vlastnosti[3] = Arit_Pr
 
@@ -335,16 +337,14 @@ def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsup
         if len(parametry) < 5:
             parametry = parametry + np.zeros(5-len(parametry)).tolist()
 
-        training_data = Set_Features(train_data[0][1], False, 0, delka_okna, parametry[0], parametry[1],parametry[2],
-                                     parametry[3], parametry[4])[0]
+        training_data = Set_Features(train_data[0][1], False, 0, delka_okna, parametry[0], parametry[1],parametry[2], parametry[3], parametry[4])[0]
         for train in train_data[1:]:
             training_data = np.vstack((training_data, Set_Features(train[1], False, 0, delka_okna, parametry[0], parametry[1],
                                                                    parametry[2], parametry[3], parametry[4])[0]))
         testing_data = Set_Features(test_data[0][1], False, 0, delka_okna, parametry[0], parametry[1], parametry[2],
                                     parametry[3], parametry[4])[0]
         for test in test_data[1:]:
-            testing_data = np.vstack((testing_data[0][1],Set_Features(test, False, 0, delka_okna, parametry[0], parametry[1], parametry[2],
-                                        parametry[3], parametry[4])[0]))
+            testing_data = np.vstack((testing_data[0][1],Set_Features(test, False, 0, delka_okna, parametry[0], parametry[1], parametry[2], parametry[3], parametry[4])[0]))
 
         CLF = copy.copy(model)
         if unsupervised:
