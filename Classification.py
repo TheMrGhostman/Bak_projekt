@@ -12,6 +12,7 @@ import itertools as it
 import timeit
 import copy
 import time
+import progressbar
 
 @guvectorize(['void(float64[:], int64, float64[:])'], '(n),()->(n)')
 def Derivace(data, krok, derivace):
@@ -59,6 +60,28 @@ def Moving_Variance(data, okno, rozptyl):
         dolni_index = i + 1 - okno
         rozptyl[i] = sum((data[dolni_index: i + 1] - mm[i])**2)*(1/count)
 
+def Savitzky_Golay_Filter(data, okno, rad, deriv=0):
+    # data, okno - delka useku, řád polynomu, řád derivace
+    
+    #předběžná kontrola možných problémů
+    if okno % 2 != 1 or okno < 1:
+        raise TypeError("okno musí být kladné liché číslo")
+    if okno < rad + 2:
+        raise TypeError("okno je příliž male pro polynom řádu %i" %rad)
+        
+    rozmezi_radu = range(rad+1)
+    pulokno = (okno -1) // 2
+    
+    # předpočítat koeficienty
+    b = np.mat([[k**i for i in rozmezi_radu] for k in range(-pulokno, pulokno+1)])
+    m = np.linalg.pinv(b).A[deriv] * factorial(deriv)
+    
+    # zablokovat signál v extrémech s hodnotami převzatými ze samotného signálu
+    firstvals = data[0] - np.abs( data[1:pulokno+1][::-1] - data[0] )
+    lastvals = data[-1] + np.abs(data[-pulokno-1:-1][::-1] - data[-1])
+    data = np.concatenate((firstvals, data, lastvals))
+    
+    return np.convolve( m[::-1], data, mode='valid')
 
 def rozptyl_od_poc_fce(data, a_prumer_od_poc):
     odchylka = np.zeros(len(data))
@@ -161,29 +184,64 @@ def Precision_n_Recall(výsledek, stavy, pocet_stavu, srovnat = True):
     #print(tabulka)
     return [precision, recall]
 
+def Preprocessing(data, pocet_stavu, pocet_rysu, labels):
+    sorted_data_according_states = {}
+    
+    for state in range(pocet_stavu):
+        sorted_data_according_states[state] = {}
+        for feature in range(pocet_feature):
+            sorted_data_according_states[state][feature] = []
 
-def Set_Features(data_set, šum = True, velikost_sumu = 1/40, delka_okna = 10, prvni_derivace = True,
-               druha_derivace = True, suma_zleva = False, aritmeticky_prumer = False,
-               rozptyl = False, vypis_nastacene_vlastnosti = False):
+    for label in range(len(labels)):
+        for feature in range(pocet_feature):
+            sorted_data_according_states[labels[label]][feature].append(data[:,feature][label])
+    
+    means = np.zeros((pocet_stavu, pocet_feature))
+    for i in sorted_data_according_states:
+        for j in sorted_data_according_states[i]:
+            means[i, j] = np.mean(sorted_data_according_states[i][j])
+            
+    variance = np.zeros((pocet_stavu, pocet_feature, pocet_feature))
+    for i in sorted_data_according_states:
+        for j in sorted_data_according_states[i]:
+            variance[i, j, j] = np.var(sorted_data_according_states[i][j])
+            
+    return [means, variance]
+
+def Normalization(data, delka_useku = 20, training_set = True):
+    if training_set:
+        return data/np.mean(data[:delka_useku])
+    else:
+        return data[delka_useku:]/np.mean(data[:delka_useku])
+
+def Set_Noise(data, velikost_sumu = 1/40):
+    noise = np.random.randn(len(data))
+    return data + noise * velikost_sumu
+    
+def Set_Features(data_set, delka_okna = 10, prvni_derivace = True, druha_derivace = True, 
+                 suma_zleva = False, aritmeticky_prumer = False, rozptyl = False, vypis_rysy = False,
+                 normalization = False, Training_set = True):
 
     if vypis_nastacene_vlastnosti == True:
         print('Délka okna:', delka_okna,
-              '\n Šum:', šum,
-              '\n Velikost šumu: ', velikost_sumu,
               '\n Prvni_derivace:',prvni_derivace,
               '\n Druha_derivace:', druha_derivace,
               '\n Suma_zleva:', suma_zleva,
               '\n Aritmeticky_prumer:', aritmeticky_prumer,
               '\n Rozptyl:', rozptyl)
 
-    X = np.array(data_set)
+    if normalization:
+        X = Normalization(np.array(data_set), delka_useku = 20, training_set = Training_set)
+        '''
+        Díky bool(training set) můžu v budoucnu vynechávat z predikce úsek podle, kterého normuju 
+        a to z důvodu, že v praxi na začátku predikce nebudu tento úsek znát, proto budu muset nejdříve 
+        udělat střední hodnotu "normalizačního úseku" a pak s její pomocí normovát následující data
+        '''
+    else:
+        X = np.array(data_set)
+    
     vlastnosti = np.zeros(6).tolist()
-
-    if šum == True:
-        šum = np.random.randn(len(data_set))
-        X = X+šum*velikost_sumu
-
-    XX=X
+    XX = np.copy(X)
     # samotné XX je jen data_set
     # do X jsou odteď přidané i feature
 
@@ -225,8 +283,10 @@ def klasifikuj(data_set, kontolni_data_set, pocet_stavu = 2, šum = True,
                velikost_sumu = 1/40, delka_okna = 10, prvni_derivace = True,
                druha_derivace = False, suma_zleva = False, aritmeticky_prumer = False,
                rozptyl = False, kresli_a_piš = True):
-
-    [X, XX, vlastnosti] = Set_Features(data_set, šum, velikost_sumu, delka_okna, prvni_derivace,
+    if šum:
+        data_set = Set_Noise(data_set, velikost_sumu)
+        
+    [X, XX, vlastnosti] = Set_Features(data_set, delka_okna, prvni_derivace,
                druha_derivace, suma_zleva, aritmeticky_prumer, rozptyl, kresli_a_piš)
 
     warnings.filterwarnings('ignore')
@@ -322,29 +382,45 @@ def přesnost_klasifikace(D, řešení, šum, velikost_sumu, počet_stavů, delk
 
 
 def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsupervised = True):
+    """
+    bar = progressbar.ProgressBar(maxval=100, \
+    widgets=[progressbar.Bar('#', '[', ']'), ' ', progressbar.Percentage()])
+    bar.start()
+    for i in range(100):
+        bar.update(i+1)
+        sleep(0.1)
+    bar.finish()
+    """
     warnings.filterwarnings('ignore')
+    
+    lengths = np.zeros(len(train_data))
+    for i in range(len(train_data)):
+        lengths[i] = len(train_data[i][1])
+    
     if not unsupervised:
         labels = train_data[0][2]
         for lab in test_data[1:]:
             labels = h.stack((labels,lab[2]))
         labels = labels.T
     Labely = test_data[0][2]
+    
     for lab in test_data[1:]:
         Labely = np.hstack((Labely, lab[0][2]))
+    
     if parametry:
         if not delka_okna:
             delka_okna = 10
         if len(parametry) < 5:
             parametry = parametry + np.zeros(5-len(parametry)).tolist()
 
-        training_data = Set_Features(train_data[0][1], False, 0, delka_okna, parametry[0], parametry[1],parametry[2], parametry[3], parametry[4])[0]
+        training_data = Set_Features(train_data[0][1], delka_okna, parametry[0], parametry[1],parametry[2], parametry[3], parametry[4])[0]
         for train in train_data[1:]:
-            training_data = np.vstack((training_data, Set_Features(train[1], False, 0, delka_okna, parametry[0], parametry[1],
+            training_data = np.vstack((training_data, Set_Features(train[1], delka_okna, parametry[0], parametry[1],
                                                                    parametry[2], parametry[3], parametry[4])[0]))
-        testing_data = Set_Features(test_data[0][1], False, 0, delka_okna, parametry[0], parametry[1], parametry[2],
+        testing_data = Set_Features(test_data[0][1], delka_okna, parametry[0], parametry[1], parametry[2],
                                     parametry[3], parametry[4])[0]
         for test in test_data[1:]:
-            testing_data = np.vstack((testing_data[0][1],Set_Features(test, False, 0, delka_okna, parametry[0], parametry[1], parametry[2], parametry[3], parametry[4])[0]))
+            testing_data = np.vstack((testing_data[0][1],Set_Features(test, delka_okna, parametry[0], parametry[1], parametry[2], parametry[3], parametry[4])[0]))
 
         CLF = copy.copy(model)
         if unsupervised:
@@ -352,7 +428,7 @@ def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsup
             CLF.fit(training_data)
             endf = time.time()
         else:
-            CLF.fit(training_data, labels)
+            CLF.fit(training_data)
         stp = time.time()
         states = CLF.predict(testing_data)
         endp = time.time()
@@ -370,13 +446,20 @@ def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsup
         del CLF, training_data, testing_data, f, fa, acc, mis, p, r #, states
         return dpanda, states, endf-stf, endp-stp
     else:
+        """ kombinace všech možných rysů a délek oken"""
         [combinace, accuracy, chyby, F0, F1, F2, F_average, P0, P1, P2, R0, R1, R2, okno] = [
                                                     [],[],[],[],[],[],[],[],[],[],[],[],[],[]]
-
         if not delka_okna:
             delka_okna = [10]
+            
+        all_combos = (2**len(parametry)-1)*len(delka_okna)
+        print("počet všech možných kombinací je ", all_comobs)
+        
+        bar = progressbar.ProgressBar(maxval=all_combos, \
+        widgets=[progressbar.Bar('#', '[', ']'), ' ', progressbar.Percentage()])
+        bar.start()
+        iterace = 0
         for okna in delka_okna:
-            iterace = 0
 
             for combin in it.product([0,1],repeat=5):
                 # repeat je počet možných feature, který lze použít
@@ -385,22 +468,21 @@ def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsup
                 combinace.append(combin)
                 okno.append(okna)
 
-                training_data = Set_Features(train_data[0][1], False, 0, okna,combin[0], combin[1], combin[2], combin[3], combin[4])[0]
+                training_data = Set_Features(train_data[0][1], okna,combin[0], combin[1], combin[2], combin[3], combin[4])[0]
                 for train in train_data[1:]:
-                    training_data = np.vstack((training_data,Set_Features(train[1], False, 0, okna, combin[0], combin[1], combin[2], combin[3], combin[4])[0]))
+                    training_data = np.vstack((training_data,Set_Features(train[1], okna, combin[0], combin[1], combin[2], combin[3], combin[4])[0]))
 
-                testing_data = Set_Features(test_data[0][1], False, 0, okna, combin[0],combin[1], combin[2], combin[3], combin[4])[0]
+                testing_data = Set_Features(test_data[0][1], okna, combin[0],combin[1], combin[2], combin[3], combin[4])[0]
                 for test in test_data[1:]:
-                    testinging_data = np.vstack((testing_data,Set_Features(test[0][1], False, 0, okna,combin[0], combin[1], combin[2], combin[3], combin[4])[0]))
+                    testinging_data = np.vstack((testing_data,Set_Features(test[0][1], okna,combin[0], combin[1], combin[2], combin[3], combin[4])[0]))
 
                 CLF = copy.copy(model)
                 if unsupervised:
                     CLF.fit(training_data)
                 else:
-                    CLF.fit(training_data, labels)
+                    CLF.fit(training_data)
 
                 states = CLF.predict(testing_data)
-                print(states)
 
                 [acc, mis] = Accuracy(Labely, states, 3, unsupervised)
                 accuracy.append(acc), chyby.append(mis)
@@ -411,7 +493,9 @@ def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsup
                 R0.append(r[0]), R1.append(r[1]), R2.append(r[2])
                 del CLF, training_data, testing_data, f, fa, acc, mis, p, r, states
                 iterace +=1
-                print(iterace)
+                #print(iterace)
+                bar.update(iterace)
+     
 
         panda = list(zip(combinace, okno, accuracy, chyby, F0, F1, F2, F_average, P0, P1, P2, R0, R1, R2))
         dpanda = pd.DataFrame(data = panda, columns = ['Kombinace rysů','délka úseku', 'Accuracy', 'Chyby',
