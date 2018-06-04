@@ -261,7 +261,7 @@ def Set_Features(data_set, delky_oken = [10,10,10,10], prvni_derivace = True, dr
         Dx2 = Savitzky_Golay_Filter(XX, 9 , 3 , 2)
         X = np.vstack([X, Dx2])
 
-    for delky in delky_oken:
+    for delky in delky_oken[:-1]:
         if delky != 0:
             if suma_zleva == True:
                 Suma_L = Exp_Moving_Mean(XX, delky)
