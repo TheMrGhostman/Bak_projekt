@@ -281,111 +281,7 @@ def Set_Features(data_set, delky_oken = [10,10,10,10], prvni_derivace = True, dr
     # transponuju teď už matici původního data setu a features
     return (X.T, XX)
 
-
-###########################################################################################################################################
-
-def klasifikuj(data_set, kontolni_data_set, pocet_stavu = 2, šum = True,
-               velikost_sumu = 1/40, delka_okna = 10, prvni_derivace = True,
-               druha_derivace = False, suma_zleva = False, aritmeticky_prumer = False,
-               rozptyl = False, kresli_a_piš = True):
-    if šum:
-        data_set = Set_Noise(data_set, velikost_sumu)
-
-    [X, XX, vlastnosti] = Set_Features(data_set, delka_okna, prvni_derivace,
-               druha_derivace, suma_zleva, aritmeticky_prumer, rozptyl, kresli_a_piš)
-
-    warnings.filterwarnings('ignore')
-
-    HMM_klasifikace = GaussianHMM(pocet_stavu)
-
-    HMM_klasifikace.fit(X)
-
-    states = HMM_klasifikace.predict(X)
-
-    if kresli_a_piš == True:
-        T_label = np.arange(len(XX))
-
-        plt.figure("Testovací data")
-        plt.plot(T_label, XX, color = 'red')
-        plt.show()
-
-        print(states)
-
-        plt.figure('Unsupervised hmm. %i stavů ' %pocet_stavu)
-        plt.plot(T_label, XX, linewidth = 0.5)
-        plt.scatter(T_label, XX, c = states, cmap = plt.cm.plasma)
-
-        if suma_zleva == True:
-            plt.plot(np.array(vlastnosti[2])+np.amin(data_set) / 2)
-
-        if aritmeticky_prumer == True:
-            plt.plot(vlastnosti[3])
-
-        if rozptyl == True:
-            plt.plot(vlastnosti[4])
-
-        plt.show()
-
-        print("Vracím: přesnost, počet chyb, FM, průměr FM ze všech tříd, preciznost, \"recall\"")
-
-    return [Accuracy(kontolni_data_set,states,pocet_stavu),
-            F_Measure(kontolni_data_set,states,pocet_stavu),
-            Precision_n_Recall(kontolni_data_set,states,pocet_stavu)]
-
-###########################################################################################################################################
-
-def přesnost_klasifikace(D, řešení, šum, velikost_sumu, počet_stavů, delka_okna, počet_opakování = 500, výpis = True):
-    N = []
-    # hodnoty z každé klasifikace ([úspěšnost, chyby])
-    dN = []
-    # tabulka hodnot v pandas
-    means = np.zeros((2**5 -1,2))
-    # střední hodnoty jsou 2D matice, kde první sloupec je přesnost a druhý je počet chyb
-    combinace = []
-    # kombinace
-    iterace = 0
-
-    time=np.zeros(2**5 - 1)
-    # vektor časů průběhu kombinací
-
-    for combin in it.product([0,1],repeat=5):
-        # repeat je počet možných feature, který lze použít
-        start = timeit.default_timer()
-
-        if combin == (0,0,0,0,0):
-             # kombinace feature (0,0,0,0,0) je k ničemu, stejně jí HMM nepřechroustá a spadne
-            continue
-
-        combinace.append(combin)
-
-        temp = klasifikuj(D, řešení, počet_stavů, šum, velikost_sumu, delka_okna,
-                          combin[0], combin[1], combin[2], combin[3], combin[4], False)
-
-        for i in range(počet_opakování-1 ):
-            temp = np.vstack((temp, klasifikuj(D, řešení, počet_stavů, šum, velikost_sumu, delka_okna,
-                                               combin[0], combin[1], combin[2], combin[3], combin[4], False)))
-
-        N.append(temp)
-
-        dtemp = (pd.DataFrame(data = temp, columns=['Procenta', 'Chyby']))
-
-        dN.append(dtemp)
-
-        means[iterace,0] = dtemp['Procenta'].mean()
-        means[iterace,1] = dtemp['Chyby'].mean()
-
-        if výpis == True:
-            print(iterace)
-
-        stop = timeit.default_timer()
-        time[iterace] = stop-start
-
-        iterace = iterace + 1
-
-    return [N, dN, means, combinace, time]
-#################################################################
-
-
+"""funkce validuj pro testování kombinací rysů"""
 def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsupervised = True):
 
     if len(delka_okna) != 4:
@@ -412,16 +308,16 @@ def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsup
             Labely = np.hstack((Labely, lab[0][2]))
 
         training_data = Set_Features(train_data[0][1], delka_okna, \
-                        parametry[0], parametry[1],parametry[2], parametry[3], parametry[4])[0]
+                        parametry[0], parametry[1],parametry[2], parametry[3], parametry[4], normalization = True)[0]
         for train in train_data[1:]:
             training_data = np.vstack((training_data, Set_Features(train[1], delka_okna, \
-                            parametry[0], parametry[1], parametry[2], parametry[3], parametry[4])[0]))
+                            parametry[0], parametry[1], parametry[2], parametry[3], parametry[4], normalization = True)[0]))
 
         testing_data = Set_Features(test_data[0][1], delka_okna, \
-                        parametry[0], parametry[1], parametry[2], parametry[3], parametry[4])[0]
+                        parametry[0], parametry[1], parametry[2], parametry[3], parametry[4], normalization = True)[0]
         for test in test_data[1:]:
             testing_data = np.vstack((testing_data[0][1],Set_Features(test, delka_okna, \
-                            parametry[0], parametry[1], parametry[2], parametry[3], parametry[4])[0]))
+                            parametry[0], parametry[1], parametry[2], parametry[3], parametry[4], normalization = True)[0]))
 
         CLF = copy.copy(model)
         if unsupervised:
@@ -438,6 +334,10 @@ def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsup
             CLF.means_, CLF.covars_ = Preprocessing(training_data, 3, np.shape(training_data)[1], labels)
             CLF.fit(training_data, lengths)
             endf = time.time()
+            tm = copy.copy(CLF.transmat_[1,2])
+            CLF.transmat_[1,2] = 0
+            CLF.transmat_[1,1] = CLF.transmat_[1,1] + tm
+            del tm
 
         stp = time.time()
         states = CLF.predict(testing_data)
@@ -486,16 +386,16 @@ def validuj(model, train_data, test_data, delka_okna =[], parametry  = [], unsup
                                 okno.append((MM1, MM2, MM3, RM))
 
                                 training_data = Set_Features(train_data[0][1], [MM1, MM2, MM3, RM], \
-                                                combin[0], combin[1], combin[2], combin[3], combin[4])[0]
+                                                combin[0], combin[1], combin[2], combin[3], combin[4], normalization = True)[0]
                                 for train in train_data[1:]:
                                     training_data = np.vstack((training_data,Set_Features(train[1], [MM1, MM2, MM3, RM], \
-                                                    combin[0], combin[1], combin[2], combin[3], combin[4])[0]))
+                                                    combin[0], combin[1], combin[2], combin[3], combin[4], normalization = True)[0]))
 
                                 testing_data = Set_Features(test_data[0][1], [MM1, MM2, MM3, RM], \
-                                                combin[0],combin[1], combin[2], combin[3], combin[4])[0]
+                                                combin[0],combin[1], combin[2], combin[3], combin[4], normalization = True)[0]
                                 for test in test_data[1:]:
                                     testing_data = np.vstack((testing_data, Set_Features(test[1], [MM1, MM2, MM3, RM], \
-                                                    combin[0], combin[1], combin[2], combin[3], combin[4])[0]))
+                                                    combin[0], combin[1], combin[2], combin[3], combin[4], normalization = True)[0]))
 
                                 CLF = copy.copy(model)
                                 if unsupervised:
