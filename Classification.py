@@ -2,10 +2,10 @@
 
 from math import factorial, isnan
 import warnings
-import copy
 import time
 import itertools as it
 import numpy as np
+from copy import copy
 from sympy.utilities.iterables import multiset_permutations
 from hmmlearn.hmm import GaussianHMM
 from scipy.ndimage import convolve1d
@@ -128,7 +128,7 @@ def srovnej(res, data, pocet_stavu=3):
         if len(np.unique(data)) == 2:
             #srovnej(res, data, 2)
             [temp0, temp1] = np.unique(data)
-            temp2 = copy.copy(temp1)
+            temp2 = copy(temp1)
         else:
             [temp0, temp1, temp2] = np.unique(data)
         perm = np.array([temp0, temp1, temp2])
@@ -208,6 +208,8 @@ def Preprocessing(data, pocet_stavu, pocet_feature, labels):
     if np.shape(data)[0] < np.shape(data)[1]:
         raise TypeError("data nemají správný formát")
 
+    #print("pocet rysu = ", pocet_feature, "tvar labels = ", np.shape(labels), "tvar dat: ", np.shape(data))
+
     sorted_data_according_states = {}
 
     for state in range(pocet_stavu):
@@ -215,7 +217,7 @@ def Preprocessing(data, pocet_stavu, pocet_feature, labels):
         for feature in range(pocet_feature):
             sorted_data_according_states[state][feature] = []
 
-    for label in range(len(labels)): #label, _ in enumerate(labels)
+    for label, _ in enumerate(labels): #label, _ in enumerate(labels)
         for feature in range(pocet_feature):
             sorted_data_according_states[labels[label]][feature].append(data[:, feature][label])
 
@@ -314,7 +316,9 @@ def make_matrix(data, okna):
         raise ValueError("okna musí být list s nejméně 4 prvky")
     if not isinstance(data, list):
         data = [data]
-    out = []
+
+    W = 3 + 2*len(okna[0]) + 2*len(okna[1]) + 2*len(okna[2]) + len(okna[3])
+    out = np.zeros((W,1))
     for d in data:
         norm_d = normalization(d[1], delka_useku=20, training_set=True)
         mat = np.asarray(norm_d)
@@ -334,10 +338,12 @@ def make_matrix(data, okna):
             mat = np.vstack((mat, exp_moving_mean(norm_d, emm2)))
         for mv0 in okna[3]:
             mat = np.vstack((mat, moving_variance(norm_d, mv0)))
-        out.append(mat.T)
-    return out
+        #print("W = ", W, "mat = ", np.shape(mat))
+        out = np.hstack((out, mat))
+    return out[:,1:].T
 
 def train_and_predict(model, train, test, lengths, labels, unsupervised):
+    warnings.filterwarnings('ignore')
     if unsupervised:
         model.fit(train)
     else:
@@ -346,7 +352,7 @@ def train_and_predict(model, train, test, lengths, labels, unsupervised):
                                                     np.shape(train)[1],
                                                     labels)
         model.fit(train, lengths)
-        tm = copy.copy(model.transmat_[1, 2])
+        tm = copy(model.transmat_[1, 2])
         model.transmat_[1, 2] = 0
         model.transmat_[1, 1] = model.transmat_[1, 1] + tm
         del tm
@@ -359,9 +365,30 @@ def score(states, results, unsupervised):
     [P, R] = Precision_n_Recall(results, states, 3, unsupervised)
     return [Acc, M, F, F_a, P, R]
 
-"""funkce validuj pro testování kombinací rysů"""
-def validuj(model, train_data, test_data, delka_okna=[], parametry=[], unsupervised=True):
+def vrat_delku_oken(delka_oken, cc, ran):
+    w0 = len(delka_oken[0])
+    w1 = len(delka_oken[1])
+    w2 = len(delka_oken[2])
 
+    if cc[0] < w0:
+        O0 = delka_oken[0][cc[0]]
+    else:
+        O0 = 0
+
+    if cc[1] < w1:
+        O1 = delka_oken[1][cc[1]]
+    else:
+        O1 = 0
+
+    if cc[2] < w2:
+        O2 = delka_oken[2][cc[2]]
+    else:
+        O2 = 0
+
+    return((O0, O1, O2, ran))
+
+def validuj(model, train_data, test_data, delka_okna=[], parametry=[], unsupervised=True):
+    """funkce validuj pro testování kombinací rysů"""
     if len(delka_okna) != 4:
         raise ValueError("delky oken musí být typu list se čtyřmi prvky")
     if len(parametry) != 5 and len(np.unique(parametry)) > 2 and len(parametry) != 0:
@@ -373,10 +400,10 @@ def validuj(model, train_data, test_data, delka_okna=[], parametry=[], unsupervi
     for i in range(len(train_data)):
         lengths[i] = len(train_data[i][1])
 
-    """Nastavení labelů k datům"""
+    #Nastavení labelů k datům
     if not unsupervised:
         labels = train_data[0][2]
-        for lab in test_data[1:]:
+        for lab in train_data[1:]:
             labels = np.hstack((labels, lab[2]))
         labels = labels.T
 
@@ -409,7 +436,7 @@ def validuj(model, train_data, test_data, delka_okna=[], parametry=[], unsupervi
                                                    parametry[4],
                                                    norm=True)[0]))
 
-        CLF = copy.copy(model)
+        CLF = copy(model)
         if unsupervised:
             stf = time.time()
             CLF.fit(training_data)
@@ -426,7 +453,7 @@ def validuj(model, train_data, test_data, delka_okna=[], parametry=[], unsupervi
                                                     labels)
             CLF.fit(training_data, lengths)
             endf = time.time()
-            tm = copy.copy(CLF.transmat_[1, 2])
+            tm = copy(CLF.transmat_[1, 2])
             CLF.transmat_[1, 2] = 0
             CLF.transmat_[1, 1] = CLF.transmat_[1, 1] + tm
             del tm
@@ -451,7 +478,7 @@ def validuj(model, train_data, test_data, delka_okna=[], parametry=[], unsupervi
         del training_data, testing_data, f, fa, acc, mis, p, r #, states
         return dpanda, states, endf-stf, endp-stp, CLF
     else:
-        """ kombinacee všech možných rysů a délek oken"""
+        #kombinacee všech možných rysů a délek oken
         [combinace, accuracy, chyby, F0, F1, F2, F_average, P0, P1, P2, R0, R1, R2, okno] = \
                                     [[], [], [], [], [], [], [], [], [], [], [], [], [], []]
 
@@ -507,7 +534,7 @@ def validuj(model, train_data, test_data, delka_okna=[], parametry=[], unsupervi
                                                                            combin[4],
                                                                            norm=True)[0]))
 
-                                CLF = copy.copy(model)
+                                CLF = copy(model)
                                 if unsupervised:
                                     CLF.fit(training_data)
                                 else:
@@ -521,7 +548,7 @@ def validuj(model, train_data, test_data, delka_okna=[], parametry=[], unsupervi
                                                                             np.shape(training_data)[1],
                                                                             labels)
                                     CLF.fit(training_data, lengths)
-                                    tm = copy.copy(CLF.transmat_[1, 2])
+                                    tm = copy(CLF.transmat_[1, 2])
                                     CLF.transmat_[1, 2] = 0
                                     CLF.transmat_[1, 1] = CLF.transmat_[1, 1] + tm
                                     del tm
@@ -584,21 +611,26 @@ def validuj(model, train_data, test_data, delka_okna=[], parametry=[], unsupervi
         return dpanda
 
 
-def validace_new(model, train_data, test_data, delka_okna, unsupervised=True):
+def validace_new(main_model, train_data, test_data, delka_okna, unsupervised=True):
     """
         při změně parametrů je potřeba přepsat přiřazování a maxval v progrssbaru
     """
-
-    bar = progressbar.ProgressBar(maxval=4107,
+    #4107
+    bar = progressbar.ProgressBar(maxval=4263,
                                   widgets=[progressbar.Bar('#', '[', ']'),
                                            ' ', progressbar.Percentage()])
     bar.start()
 
+    st = time.time()
+
     if not unsupervised:
         labels = train_data[0][2]
-        for lab in test_data[1:]:
+        for lab in train_data[1:]:
             labels = np.hstack((labels, lab[2]))
         labels = labels.T
+
+    #print("tvar labelů", np.shape(labels))
+    #print(labels)
 
     w0 = len(delka_okna[0])
     w1 = len(delka_okna[1])
@@ -611,65 +643,67 @@ def validace_new(model, train_data, test_data, delka_okna, unsupervised=True):
 
     train_matrix = make_matrix(train_data, delka_okna)
     test_matrix = make_matrix(test_data, delka_okna)
+    #print(np.shape(train_matrix), np.shape(test_matrix))
 
     [comb, acc, miss, F0, F1, F2, F_avr, P0, P1, P2, R0, R1, R2, okno] = [[], [], [], [], [], [],
                                                                           [], [], [], [], [], [],
                                                                           [], []]
     iterace = 0
-    okna = [[1, 2], [2, 3], [3, 3], range(12)]
+    #okna = [[1, 2], [2, 3], [3, 3], range(12)]
     #okna = [[1],[2],[3],range(12)]
     for combin in it.product([0, 1], repeat=5):
         if combin == (0, 0, 0, 0, 0):
             continue
-        train = np.asarray(train_matrix[0])
-        test = np.asarray(test_matrix[0])
+        train = np.asarray(train_matrix[:, 0])
+        test = np.asarray(test_matrix[:, 0])
 
         if combin[0]:
-            train = np.vstack((train, train_matrix[1]))
+            train = np.vstack((train, train_matrix[:, 1]))
         if combin[1]:
-            train = np.vstack((train, train_matrix[2]))
+            train = np.vstack((train, train_matrix[:, 2]))
         if combin[2] == 1 or combin[3] == 1:
             for cc in it.product([0, 1, 2], repeat=3):
-                if cc == (0, 0, 0):
-                    continue
+                #if cc == (2, 2, 2):
+                #    continue
                 train1 = np.asarray(train)
                 test1 = np.asarray(test)
 
                 #print(cc)
                 if combin[2] == 1:
                     if cc[0] < w0:
-                        train1 = np.vstack((train1, train_matrix[2 + cc[0]]))
-                        test1 = np.vstack((test1, test_matrix[2 + cc[0]]))
+                        train1 = np.vstack((train1, train_matrix[:, 2 + cc[0]]))
+                        test1 = np.vstack((test1, test_matrix[:, 2 + cc[0]]))
                     if cc[1] < w1:
-                        train1 = np.vstack((train1, train_matrix[2 + w0 + cc[1]]))
-                        test1 = np.vstack((test1, test_matrix[2 + + w0 + cc[1]]))
+                        train1 = np.vstack((train1, train_matrix[:, 2 + w0 + cc[1]]))
+                        test1 = np.vstack((test1, test_matrix[:, 2 + + w0 + cc[1]]))
                     if cc[2] < w2:
-                        train1 = np.vstack((train1, train_matrix[2 + w0 + w1 + cc[2]]))
-                        test1 = np.vstack((test1, test_matrix[2 + w0 + w1 + cc[2]]))
+                        train1 = np.vstack((train1, train_matrix[:, 2 + w0 + w1 + cc[2]]))
+                        test1 = np.vstack((test1, test_matrix[:, 2 + w0 + w1 + cc[2]]))
 
                 if combin[3] == 1:
                     if cc[0] < w0:
-                        train1 = np.vstack((train1, train_matrix[2 + W + cc[0]]))
-                        test1 = np.vstack((test1, test_matrix[2 + W + cc[0]]))
+                        train1 = np.vstack((train1, train_matrix[:, 2 + W + cc[0]]))
+                        test1 = np.vstack((test1, test_matrix[:, 2 + W + cc[0]]))
                     if cc[1] < w1:
-                        train1 = np.vstack((train1, train_matrix[2 + W + w0 + cc[1]]))
-                        test1 = np.vstack((test1, test_matrix[2 + W + w0 + cc[1]]))
+                        train1 = np.vstack((train1, train_matrix[:, 2 + W + w0 + cc[1]]))
+                        test1 = np.vstack((test1, test_matrix[:, 2 + W + w0 + cc[1]]))
                     if cc[2] < w2:
-                        train1 = np.vstack((train1, train_matrix[2 + W + w0 + w1 + cc[2]]))
-                        test1 = np.vstack((test1, test_matrix[2 + W + w0 + w1 + cc[2]]))
+                        train1 = np.vstack((train1, train_matrix[:, 2 + W + w0 + w1 + cc[2]]))
+                        test1 = np.vstack((test1, test_matrix[:, 2 + W + w0 + w1 + cc[2]]))
                 if combin[4] == 1:
-                    for i, j in enumerate(okna[-1]):
+                    for i, j in enumerate(delka_okna[-1], 0):
                         train2 = np.asarray(train1)
                         test2 = np.asarray(test1)
-                        train2 = np.vstack((train2, train_matrix[2 + 2*W + i]))
-                        test2 = np.vstack((test2, test_matrix[2 + 2*W + i]))
+                        train2 = np.vstack((train2, train_matrix[:, 2 + 2*W + i]))
+                        test2 = np.vstack((test2, test_matrix[:, 2 + 2*W + i]))
+                        model = copy(main_model)
+                        #print("combin ", combin, "cc ", cc)
                         states = train_and_predict(model, train2.T, test2.T, lengths, labels,
                                                    unsupervised)
 
                         comb.append(combin)
-                        okno.append((delka_okna[0][cc[0]], delka_okna[1][cc[1]],
-                                     delka_okna[2][cc[2]], j))
-                        [a, m, f, f_a, p, r] = score(states, test_data[2], unsupervised)
+                        okno.append(vrat_delku_oken(delka_okna, cc, j))
+                        [a, m, f, f_a, p, r] = score(states, test_data[0][2], unsupervised)
                         acc.append(a)
                         miss.append(m)
                         F0.append(f[0])
@@ -683,16 +717,17 @@ def validace_new(model, train_data, test_data, delka_okna, unsupervised=True):
                         R1.append(r[1])
                         R2.append(r[2])
 
-                        del states, train2, test2, a, m, f, f_a, p, r
+                        del model, states, train2, test2, a, m, f, f_a, p, r
                         iterace += 1
                         bar.update(iterace)
                 else:
+                    model = copy(main_model)
+                    #print("combin ", combin, "cc ", cc)
                     states = train_and_predict(model, train1.T, test1.T, lengths, labels,
                                                unsupervised)
                     comb.append(combin)
-                    okno.append((delka_okna[0][cc[0]], delka_okna[1][cc[1]],
-                                 delka_okna[2][cc[2]], 0))
-                    [a, m, f, f_a, p, r] = score(states, test_data[2], unsupervised)
+                    okno.append(vrat_delku_oken(delka_okna, cc, 0))
+                    [a, m, f, f_a, p, r] = score(states, test_data[0][2], unsupervised)
                     acc.append(a)
                     miss.append(m)
                     F0.append(f[0])
@@ -706,20 +741,23 @@ def validace_new(model, train_data, test_data, delka_okna, unsupervised=True):
                     R1.append(r[1])
                     R2.append(r[2])
 
-                    del states, train1, test1, a, m, f, f_a, p, r
+                    del model, states, train1, test1, a, m, f, f_a, p, r
                     iterace += 1
                     bar.update(iterace)
 
         elif combin[4] == 1 and sum(combin[2:-1]) == 0:
-            for i, j in enumerate(okna[-1]):
+            for i, j in enumerate(delka_okna[-1], 0):
                 train1 = np.asarray(train)
                 test1 = np.asarray(test)
-                train1 = np.vstack((train1, train_matrix[2 + 2*W + i]))
-                test1 = np.vstack((test1, test_matrix[2 + 2*W + i]))
+                train1 = np.vstack((train1, train_matrix[:, 2 + 2*W + i]))
+                test1 = np.vstack((test1, test_matrix[:, 2 + 2*W + i]))
+                #print("tvar dat před train_and_predict je ", np.shape(train1))
+                model = copy(main_model)
+                #print("combin ", combin)
                 states = train_and_predict(model, train1.T, test1.T, lengths, labels, unsupervised)
                 comb.append(combin)
                 okno.append((0, 0, 0, j))
-                [a, m, f, f_a, p, r] = score(states, test_data[2], unsupervised)
+                [a, m, f, f_a, p, r] = score(states, test_data[0][2], unsupervised)
                 acc.append(a)
                 miss.append(m)
                 F0.append(f[0])
@@ -733,14 +771,16 @@ def validace_new(model, train_data, test_data, delka_okna, unsupervised=True):
                 R1.append(r[1])
                 R2.append(r[2])
 
-                del states, train1, test1, a, m, f, f_a, p, r
+                del model, states, train1, test1, a, m, f, f_a, p, r
                 iterace += 1
                 bar.update(iterace)
         else:
+            model = copy(main_model)
+            #print("combin ", combin)
             states = train_and_predict(model, train.T, test.T, lengths, labels, unsupervised)
             comb.append(combin)
             okno.append((0, 0, 0, 0))
-            [a, m, f, f_a, p, r] = score(states, test_data[2], unsupervised)
+            [a, m, f, f_a, p, r] = score(states, test_data[0][2], unsupervised)
             acc.append(a)
             miss.append(m)
             F0.append(f[0])
@@ -754,7 +794,7 @@ def validace_new(model, train_data, test_data, delka_okna, unsupervised=True):
             R1.append(r[1])
             R2.append(r[2])
 
-            del states, train, test, a, m, f, f_a, p, r
+            del model, states, train, test, a, m, f, f_a, p, r
             iterace += 1
             bar.update(iterace)
 
@@ -767,6 +807,8 @@ def validace_new(model, train_data, test_data, delka_okna, unsupervised=True):
                                    'F míra průměrná', 'Precision stavu 0', 'Precision stavu 1',
                                    'Precision stavu 2', 'Recall stavu 0', 'Recall stavu 1',
                                    'Recall stavu 2'])
+    en = time.time()
+    print(en-st)
     return dpanda
 
 
