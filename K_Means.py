@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import style
-style.use('ggplot')
+#from matplotlib import style
+#style.use('ggplot')
 
 class K_means:
     def __init__(self, k = 2, tol = 0.001, max_iterations = 300):
@@ -49,10 +49,12 @@ class K_means:
             if convergence == True:
                 break
 
-    def Predict(self, Data):
-        Distance = [np.linalg.norm(Data-self.centroids[centr]) for centr in self.centroids]
-        Prediction = Distance.index(min(Distance))
-        return Prediction
+    def predict(self, Data):
+        Prediction = []
+        for d in Data:
+            Distance = [np.linalg.norm(d-self.centroids[centr]) for centr in self.centroids]
+            Prediction.append(Distance.index(min(Distance)))
+        return np.array(Prediction)
 
 
 # def data_prepare(data):
@@ -124,7 +126,7 @@ def Main():
     #                    [5,4],
     #                    [6,4]])
     # for u in unknowns:
-    #    classify = clf.Predict(u)
+    #    classify = clf.predict(u)
     #    plt.scatter(u[0], u[1], marker = "." , color = colors[classify], s = 100, linewidths = 5)
     #
     # plt.show()
@@ -158,7 +160,7 @@ def Main():
     #                    [5,4,5],
     #                    [6,4,7]])
     #for u in unknowns:
-    #    classify = clf.Predict(u)
+    #    classify = clf.predict(u)
     #    ax.scatter(u[0], u[1], u[2], marker = "." , color = colors[classify], s = 100, linewidths = 5)
 
     #plt.show()
